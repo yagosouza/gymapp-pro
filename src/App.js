@@ -87,7 +87,6 @@ function CustomSelect({ options, value, onChange, placeholder = "Selecione..." }
     );
 }
 
-
 // --- Componentes de Modal ---
 function ModalBase({ onClose, title, children }) {
   useEffect(() => { const handleEsc = (e) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', handleEsc); return () => window.removeEventListener('keydown', handleEsc); }, [onClose]);
@@ -270,27 +269,12 @@ function ProfilePage({ profile, setProfile }) {
                      {activeTab === 'skinfolds' && Object.entries(skinfoldLabels).map(([key, label]) => (<InputField key={key} label={label} name={key} type="number" value={newRecord[key]} onChange={handleRecordChange} small/>))}
                 </div><button onClick={addFullRecord} className="btn-primary w-full mt-2">Guardar Registo</button>
             </div>
-            
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center mb-4"><h2 className="text-2xl font-semibold text-blue-400">Histórico de Medidas</h2><button onClick={() => setIsClearHistoryModalOpen(true)} className="btn-secondary bg-red-800/60 hover:bg-red-800/80 text-sm !py-1"><Trash2 size={14}/> Limpar</button></div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                         <thead><tr className="border-b border-gray-700"><th className="p-2 sticky left-0 bg-gray-800">Data</th>{Object.values(allMeasureKeys).map(label => <th key={label} className="p-2 text-center">{label.split(' ')[0]}</th>)}</tr></thead>
-                        <tbody>{sortedHistory.map((entry, index) => { const isLatest = index === 0; const prev = isLatest ? previousRecord : (sortedHistory[index+1] || {}); return (<tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/50"><td className="p-2 font-semibold sticky left-0 bg-gray-800">{new Date(entry.date).toLocaleDateString('pt-BR')}</td>{Object.keys(allMeasureKeys).map(key => <td key={key} className="p-2 text-center"><div className="flex items-center justify-center gap-1">{entry[key] || '-'}{isLatest && getComparisonIcon(key, entry[key], prev[key])}</div></td>)}</tr>) })}</tbody>
-                    </table>
-                </div>
+                <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap"><thead><tr className="border-b border-gray-700"><th className="p-2 sticky left-0 bg-gray-800">Data</th>{Object.values(allMeasureKeys).map(label => <th key={label} className="p-2 text-center">{label.split(' ')[0]}</th>)}</tr></thead><tbody>{sortedHistory.map((entry, index) => { const isLatest = index === 0; const prev = isLatest ? previousRecord : (sortedHistory[index+1] || {}); return (<tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/50"><td className="p-2 font-semibold sticky left-0 bg-gray-800">{new Date(entry.date).toLocaleDateString('pt-BR')}</td>{Object.keys(allMeasureKeys).map(key => <td key={key} className="p-2 text-center"><div className="flex items-center justify-center gap-1">{entry[key] || '-'}{isLatest && getComparisonIcon(key, entry[key], prev[key])}</div></td>)}</tr>) })}</tbody></table></div>
             </div>
         </div>
     );
-}
-
-// O resto dos componentes (MuscleGroupsPage, ExercisesPage, etc.) permanecem os mesmos da versão anterior.
-// Omitidos para brevidade.
-function MuscleGroupsPage({ setCurrentView }) {
-    return <ListPageContainer pageTitle="Grupos Musculares" itemType="groups" setCurrentView={setCurrentView} />;
-}
-function ExercisesPage({ setCurrentView }) {
-    return <ListPageContainer pageTitle="Exercícios" itemType="exercises" setCurrentView={setCurrentView} />;
 }
 
 function ListPageContainer({ pageTitle, itemType, setCurrentView, muscleGroups, exercises, setExercises, setMuscleGroups, history }) {
@@ -304,7 +288,7 @@ function ListPageContainer({ pageTitle, itemType, setCurrentView, muscleGroups, 
     const setItems = itemType === 'exercises' ? setExercises : setMuscleGroups;
     const handleDelete = (id) => {
         if (itemType === 'groups') {
-            const isGroupInUse = exercises.some(ex => ex.muscleGroupId === id);
+            const isGroupInUse = exercises.some(ex => ex.muscleGroupId === id || ex.secondaryMuscleGroupIds.includes(id));
             if (isGroupInUse) { alert('Este grupo muscular está a ser usado em exercícios e não pode ser excluído.'); return; }
         }
         setItems(prevItems => prevItems.filter(item => item.id !== id));
@@ -346,7 +330,7 @@ function ListPageContainer({ pageTitle, itemType, setCurrentView, muscleGroups, 
     );
 }
 
-function GroupFormPage({ group, setMuscleGroups, muscleGroups, onCancel, onSave }){
+function GroupFormPage({ group, onSave, onCancel, muscleGroups, setMuscleGroups }){
     const [name, setName] = useState(group ? group.name : '');
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -355,10 +339,10 @@ function GroupFormPage({ group, setMuscleGroups, muscleGroups, onCancel, onSave 
         } else { setMuscleGroups([...muscleGroups, { id: Date.now(), name }]); }
         onSave();
     };
-    return (<div className="animate-fade-in"><div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">{group ? 'Editar' : 'Novo'} Grupo</h1><div className="flex gap-4"><button onClick={onCancel} className="btn-secondary"><X size={20}/> Cancelar</button><button onClick={handleSubmit} className="btn-primary"><Save size={20}/> Salvar</button></div></div><form onSubmit={handleSubmit} className="bg-gray-800 p-6 rounded-xl space-y-4"><InputField label="Nome do Grupo" value={name} onChange={e => setName(e.target.value)} autoFocus /></form></div>);
+    return (<div className="animate-fade-in"><div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">{group ? 'Editar' : 'Novo'} Grupo</h1><div className="flex gap-4"><button onClick={onCancel} className="btn-secondary"><X size={20}/> Cancelar</button><button type="submit" onClick={handleSubmit} className="btn-primary"><Save size={20}/> Salvar</button></div></div><form onSubmit={handleSubmit} className="bg-gray-800 p-6 rounded-xl space-y-4"><InputField label="Nome do Grupo" value={name} onChange={e => setName(e.target.value)} autoFocus /></form></div>);
 }
 
-function ExerciseFormPage({ exercise, setExercises, exercises, muscleGroups, onCancel, onSave }){
+function ExerciseFormPage({ exercise, onSave, onCancel, exercises, setExercises, muscleGroups }){
     const [formState, setFormState] = useState(exercise ? { ...exercise, secondaryMuscleGroupIds: exercise.secondaryMuscleGroupIds || [] } : { name: '', muscleGroupId: '', secondaryMuscleGroupIds: [], suggestedSets: '', suggestedReps: '', suggestedWeight: '', videoUrl: '', imageUrl: '' });
     const handleInputChange = (e) => setFormState({ ...formState, [e.target.name]: e.target.value });
     const handleSecondaryGroupChange = (groupId) => {
@@ -435,20 +419,12 @@ function WorkoutEditor({ workout, onSave, onCancel, allExercises, history }) {
 }
 
 function WorkoutsPage({ workouts, setWorkouts, allExercises, onStartWorkout, history, setCurrentView }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [workoutToEdit, setWorkoutToEdit] = useState(null);
     const [itemToDelete, setItemToDelete] = useState(null);
     const calculateAverageTime = (workout) => { const totalSets = workout.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets, 10) || 0), 0); return totalSets * 2; };
-    const handleCreate = () => { const newWorkout = { id: Date.now(), name: 'Novo Treino', lastCompleted: null, exercises: [] }; setWorkoutToEdit(newWorkout); setIsEditing(true); };
-    const handleEdit = (workout) => { setWorkoutToEdit(workout); setIsEditing(true); };
+    const handleCreate = () => setCurrentView({ page: 'workouts', mode: 'edit', id: null });
+    const handleEdit = (workout) => setCurrentView({ page: 'workouts', mode: 'edit', id: workout.id });
     const handleDelete = (id) => { setWorkouts(workouts.filter(w => w.id !== id)); setItemToDelete(null); };
-    const handleSave = (editedWorkout) => {
-        const exists = workouts.some(w => w.id === editedWorkout.id);
-        if (exists) { setWorkouts(workouts.map(w => w.id === editedWorkout.id ? editedWorkout : w));
-        } else { setWorkouts([...workouts, editedWorkout]); }
-        setIsEditing(false); setWorkoutToEdit(null);
-    };
-    if (isEditing) { return <WorkoutEditor workout={workoutToEdit} onSave={handleSave} onCancel={() => setIsEditing(false)} allExercises={allExercises} history={history} /> }
+    
     return (
         <div className="animate-fade-in pb-24">
             <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={() => handleDelete(itemToDelete)} title="Apagar Treino"><p>Tem a certeza que quer apagar este treino? Esta ação não pode ser desfeita.</p></ConfirmationModal>
@@ -581,8 +557,6 @@ function GymAppPro({ onLogout }) {
   
   const [currentView, setCurrentView] = useState({ page: 'home' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  // Estado global para a sessão de treino ativa
   const [activeSession, setActiveSession] = useStickyState(null, 'activeWorkoutSession');
 
   const startWorkoutSession = (workoutId) => {
@@ -595,7 +569,7 @@ function GymAppPro({ onLogout }) {
             return acc;
         }, {})
     });
-    setCurrentView({ page: 'workouts', mode: 'training', id: workoutId });
+    setCurrentView({ page: 'workouts', mode: 'training' });
   };
   
   useEffect(() => { if (window.innerWidth < 768) setIsSidebarOpen(false); }, []);
@@ -605,37 +579,43 @@ function GymAppPro({ onLogout }) {
       case 'home': return <HomePage workouts={workouts} exercises={exercises} history={history} profile={profile} setCurrentView={setCurrentView} />;
       case 'profile': return <ProfilePage profile={profile} setProfile={setProfile} />;
       case 'groups': 
-        if(currentView.mode === 'create'){
-          return <GroupFormPage onSave={() => setCurrentView({page: 'groups'})} onCancel={() => setCurrentView({page: 'groups'})} muscleGroups={muscleGroups} setMuscleGroups={setMuscleGroups} />;
+        if(currentView.mode === 'create'){ 
+            return <GroupFormPage onSave={() => setCurrentView({page: 'groups'})} onCancel={() => setCurrentView({page: 'groups'})} muscleGroups={muscleGroups} setMuscleGroups={setMuscleGroups} />; 
         }
-        if(currentView.mode === 'edit'){
-          const group = muscleGroups.find(g => g.id === currentView.id);
-          return <GroupFormPage group={group} onSave={() => setCurrentView({page: 'groups'})} onCancel={() => setCurrentView({page: 'groups'})} muscleGroups={muscleGroups} setMuscleGroups={setMuscleGroups} />;
+        if(currentView.mode === 'edit'){ 
+            const group = muscleGroups.find(g => g.id === currentView.id); 
+            return <GroupFormPage group={group} onSave={() => setCurrentView({page: 'groups'})} onCancel={() => setCurrentView({page: 'groups'})} muscleGroups={muscleGroups} setMuscleGroups={setMuscleGroups} />; 
         }
         return <ListPageContainer pageTitle="Grupos Musculares" itemType="groups" setCurrentView={setCurrentView} muscleGroups={muscleGroups} setMuscleGroups={setMuscleGroups} exercises={exercises} />;
-      
       case 'exercises':
-        if (currentView.mode === 'create') {
-            return <ExerciseFormPage onSave={() => setCurrentView({ page: 'exercises' })} onCancel={() => setCurrentView({ page: 'exercises' })} exercises={exercises} setExercises={setExercises} muscleGroups={muscleGroups} />;
+        if (currentView.mode === 'create') { 
+            return <ExerciseFormPage onSave={() => setCurrentView({ page: 'exercises' })} onCancel={() => setCurrentView({ page: 'exercises' })} exercises={exercises} setExercises={setExercises} muscleGroups={muscleGroups} />; 
         }
-        if (currentView.mode === 'edit') {
-            const exercise = exercises.find(ex => ex.id === currentView.id);
-            return <ExerciseFormPage exercise={exercise} onSave={() => setCurrentView({ page: 'exercises' })} onCancel={() => setCurrentView({ page: 'exercises' })} exercises={exercises} setExercises={setExercises} muscleGroups={muscleGroups} />;
+        if (currentView.mode === 'edit') { 
+            const exercise = exercises.find(ex => ex.id === currentView.id); 
+            return <ExerciseFormPage exercise={exercise} onSave={() => setCurrentView({ page: 'exercises' })} onCancel={() => setCurrentView({ page: 'exercises' })} exercises={exercises} setExercises={setExercises} muscleGroups={muscleGroups} />; 
         }
         return <ListPageContainer pageTitle="Exercícios" itemType="exercises" setCurrentView={setCurrentView} exercises={exercises} setExercises={setExercises} muscleGroups={muscleGroups} history={history} />;
-      
       case 'workouts':
-        if (activeSession && currentView.page === 'workouts' && currentView.mode !== 'training') {
-           setCurrentView({ page: 'workouts', mode: 'training', id: activeSession.workoutId });
-           return null;
-        }
         if (currentView.mode === 'training' && activeSession) {
           const workout = workouts.find(w => w.id === activeSession.workoutId);
-          if (!workout) {
-             setActiveSession(null);
-             return <WorkoutsPage workouts={workouts} setWorkouts={setWorkouts} allExercises={exercises} setCurrentView={setCurrentView} onStartWorkout={startWorkoutSession} history={history} />;
-          }
+          if (!workout) { 
+            setActiveSession(null); 
+            return <WorkoutsPage workouts={workouts} setWorkouts={setWorkouts} allExercises={exercises} setCurrentView={setCurrentView} onStartWorkout={startWorkoutSession} history={history} />; 
+        }
           return <TrainingModePage workout={workout} setWorkouts={setWorkouts} allExercises={exercises} backToList={() => setCurrentView({ page: 'workouts'})} setHistory={setHistory} history={history} activeSession={activeSession} setActiveSession={setActiveSession} />;
+        }
+        if (currentView.mode === 'edit') {
+            const workout = currentView.id ? workouts.find(w => w.id === currentView.id) : { name: 'Novo Treino', exercises: [] };
+            const handleSave = (editedWorkout) => {
+                if (currentView.id) { 
+                    setWorkouts(workouts.map(w => w.id === currentView.id ? editedWorkout : w));
+                } else { 
+                    setWorkouts([...workouts, {...editedWorkout, id: Date.now()}]); 
+                }
+                setCurrentView({ page: 'workouts' });
+            };
+            return <WorkoutEditor workout={workout} onSave={handleSave} onCancel={() => setCurrentView({ page: 'workouts' })} allExercises={exercises} history={history} /> 
         }
         return <WorkoutsPage workouts={workouts} setWorkouts={setWorkouts} allExercises={exercises} setCurrentView={setCurrentView} onStartWorkout={startWorkoutSession} history={history} />;
       default: return <HomePage workouts={workouts} exercises={exercises} history={history} profile={profile} setCurrentView={setCurrentView} />;
@@ -653,8 +633,8 @@ function GymAppPro({ onLogout }) {
           isSidebarOpen={isSidebarOpen} 
           setIsSidebarOpen={setIsSidebarOpen} 
           onLogout={onLogout} 
-          activeWorkoutName={activeWorkout?.name}
-          onReturnToWorkout={() => setCurrentView({ page: 'workouts', mode: 'training', id: activeSession.workoutId })}
+          activeWorkoutName={activeWorkout?.name} 
+          onReturnToWorkout={() => setCurrentView({ page: 'workouts', mode: 'training' })}
       />
       <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300">
          <div className="p-4 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-20 flex items-center md:hidden"><button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md hover:bg-gray-700"><Menu size={24} /></button><h1 className="text-xl font-semibold ml-4">GymApp Pro</h1></div>
