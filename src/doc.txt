@@ -1,0 +1,39 @@
+# Estrutura e Fluxo do GymApp
+
+- **GymApp** é o componente principal que:
+  - Renderiza o conteúdo da aplicação.
+  - Gerencia o estado de autenticação via `AppContext`.
+  - Recebe a função `onLogout` para permitir o logout do utilizador.
+
+- **Autenticação**
+  - A lógica foi simplificada para fins de demonstração.
+  - Em produção, implemente autenticação robusta, preferencialmente integrada a um backend para validação de utilizadores.
+  - O `LoginPage` recebe uma função `onLogin`, chamada quando o utilizador tenta fazer login.
+  - O estado de autenticação é gerenciado no componente `App`, mantendo a lógica separada do `GymApp`.
+
+- **Contexto**
+  - O `AppProvider` envolve o `GymApp`, fornecendo o contexto necessário para toda a aplicação.
+  - Todos os componentes dentro do `GymApp` têm acesso ao `AppContext` (exercícios, grupos musculares, perfis, etc).
+
+- **Logout**
+  - A lógica de logout é tratada no `GymApp`, que pode limpar o estado do contexto e redirecionar o utilizador para a página de login.
+  - Isso garante uma experiência consistente e segura após o logout.
+
+- **App.js**
+  - Serve como ponto de entrada da aplicação.
+  - Gerencia o estado de autenticação e renderiza os componentes apropriados.
+  - Encapsula a lógica de autenticação e logout, mantendo o código modular.
+
+- **Estrutura do Código**
+  - Organizada para facilitar manutenção e expansão futura.
+  - Permite adicionar novos recursos sem complicar a lógica existente.
+  - Pronta para integração com backend, autenticação robusta e melhorias na interface.
+
+- **Extensibilidade**
+  - Estrutura modular permite adicionar facilmente novas páginas, componentes e funcionalidades.
+  - O uso de contexto mantém o código organizado e fácil de entender.
+  - Facilita colaboração e manutenção a longo prazo.
+
+- **Pronto para Expansão**
+  - Base para um sistema de gestão de treinos, com autenticação, gestão de exercícios, grupos musculares e perfis de utilizadores.
+  - Possível expandir com relatórios de progresso, integração com dispositivos de fitness, entre outros.
