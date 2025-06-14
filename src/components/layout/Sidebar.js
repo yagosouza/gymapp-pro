@@ -1,9 +1,10 @@
-import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers,  User, LogOut,  Repeat} from 'lucide-react';
+import React from 'react';
+import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers, User, LogOut, Repeat } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { APP_VERSION } from '../../constants/initialData';
 
-export default function Sidebar({  isSidebarOpen, setIsSidebarOpen, onLogout }) {
-  const { currentView, navigateTo, activeSession, workouts } = useAppContext();
+export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
+    const { currentView, navigateTo, activeSession, workouts } = useAppContext();
     
     const activeWorkout = activeSession ? workouts.find(w => w.id === activeSession.workoutId) : null;
 
@@ -32,12 +33,12 @@ export default function Sidebar({  isSidebarOpen, setIsSidebarOpen, onLogout }) 
     return (
        <>
         <div className={`fixed inset-0 bg-black/60 z-30 md:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
-        <aside className={`absolute md:relative flex flex-col bg-gray-800 shadow-lg z-40 h-full transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-64`}>
-          <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+        <aside className={`absolute md:relative flex flex-col bg-gray-800 shadow-lg z-40 h-full transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 w-64 pb-16 md:pb-0`}>
+          <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b border-gray-700 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-white flex items-center gap-2"><Dumbbell className="text-blue-400"/> GymApp</h1>
             <button onClick={() => setIsSidebarOpen(false)} className="p-1 rounded-md hover:bg-gray-700 md:hidden"><ArrowLeft size={20} /></button>
           </div>
-          <nav className="flex-1 p-2 space-y-1">
+          <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
             {activeWorkout && (
                 <div className="p-2">
                     <button onClick={handleReturnToWorkout} className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-lg bg-green-600/80 text-white font-semibold shadow-md animate-pulse">
