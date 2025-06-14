@@ -16,12 +16,32 @@ export const AppProvider = ({ children }) => {
     const [workouts, setWorkouts] = useStickyState(initialWorkouts, 'workouts');
     const [profile, setProfile] = useStickyState(initialProfile, 'profile');
     const [history, setHistory] = useStickyState(initialHistory, 'history');
-    const [currentView, setCurrentView] = useState({ page: 'home' });
+    
+    // O estado da vista agora é um histórico de objetos
+    const [viewHistory, setViewHistory] = useState([{ page: 'home' }]);
+    const currentView = viewHistory[viewHistory.length - 1];
+
     const [activeSession, setActiveSession] = useStickyState(null, 'activeWorkoutSession');
+
+    // Nova função para navegar, que adiciona ao histórico
+    const navigateTo = (view) => {
+        // Adiciona um estado ao histórico do navegador para o botão de voltar funcionar
+        window.history.pushState({ page: view.page }, '');
+        setViewHistory(prevHistory => [...prevHistory, view]);
+    };
+
+    // Nova função para voltar, que remove do histórico
+    const goBack = () => {
+        setViewHistory(prevHistory => {
+            if (prevHistory.length > 1) {
+                return prevHistory.slice(0, -1);
+            }
+            return prevHistory; // Não remove o último item (home)
+        });
+    };
 
     const startWorkoutSession = (workoutId) => {
         const workoutToStart = workouts.find(w => w.id === workoutId);
-        console.log('Iniciando treino:', workoutToStart);
         if (!workoutToStart) return;
         setActiveSession({
             workoutId: workoutId,
@@ -30,7 +50,7 @@ export const AppProvider = ({ children }) => {
                 return acc;
             }, {})
         });
-        setCurrentView({ page: 'workouts', mode: 'training' });
+        navigateTo({ page: 'workouts', mode: 'training' });
     };
 
     const value = {
@@ -39,7 +59,9 @@ export const AppProvider = ({ children }) => {
         workouts, setWorkouts,
         profile, setProfile,
         history, setHistory,
-        currentView, setCurrentView,
+        currentView,
+        navigateTo, // Exporta a nova função de navegação
+        goBack,     // Exporta a nova função de voltar
         activeSession, setActiveSession,
         startWorkoutSession
     };

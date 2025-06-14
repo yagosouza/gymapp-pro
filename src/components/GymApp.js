@@ -1,19 +1,31 @@
-import React, { useState } from 'react';
-import { Sidebar } from './layout/Sidebar';
+import React, { useState, useEffect } from 'react';
+import Sidebar from './layout/Sidebar';
 import MainContent from './MainContent';
+import BottomNavBar from './layout/BottomNavBar'; // Importar
 import { useAppContext } from '../context/AppContext';
 import { Menu } from 'lucide-react';
 import { GlobalStyles } from './ui/GlobalStyles';
 
 export default function GymApp({ onLogout }) {
-    const { setActiveSession } = useAppContext();
+    const { setActiveSession, goBack } = useAppContext();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
+    
     const handleActualLogout = () => {
-        localStorage.removeItem('activeWorkoutSession');
-        setActiveSession(null); // Limpa o estado da sessão no contexto
+        setActiveSession(null);
         onLogout();
     }
+
+    // Efeito para o botão "voltar" do Android
+    useEffect(() => {
+        const handlePopState = (event) => {
+            event.preventDefault();
+            goBack(); // Chama a nossa nova função de voltar
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [goBack]);
 
     return (
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
@@ -23,7 +35,7 @@ export default function GymApp({ onLogout }) {
                 setIsSidebarOpen={setIsSidebarOpen}
                 onLogout={handleActualLogout} 
             />
-            <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300">
+            <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300 pb-16 md:pb-0"> {/* Adicionar padding */}
                 <div className="p-4 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-20 flex items-center md:hidden">
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md hover:bg-gray-700">
                         <Menu size={24} />
@@ -34,6 +46,7 @@ export default function GymApp({ onLogout }) {
                     <MainContent />
                 </div>
             </main>
+            <BottomNavBar /> {/* Adicionar o componente */}
         </div>
     );
 }

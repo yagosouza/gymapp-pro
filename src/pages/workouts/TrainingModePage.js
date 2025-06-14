@@ -8,7 +8,7 @@ import { InputField } from '../../components/ui/InputField';
 import { StopCircle, CheckCircle, TrendingUp, Youtube, Image as ImageIcon } from 'lucide-react';
 
 export default function TrainingModePage() {
-    const { workouts, setWorkouts, exercises, history, setHistory, activeSession, setActiveSession, setCurrentView } = useAppContext();
+    const { workouts, setWorkouts, exercises, history, setHistory, activeSession, setActiveSession, navigateTo } = useAppContext();
     const workout = workouts.find(w => w.id === activeSession.workoutId);
     
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -100,12 +100,12 @@ export default function TrainingModePage() {
 
         setWorkouts(prev => prev.map(w => w.id === workout.id ? { ...w, lastCompleted: new Date().toISOString() } : w));
         setActiveSession(null); 
-        setCurrentView({ page: 'workouts' });
+        navigateTo({ page: 'workouts' });
     };
 
     const confirmCancelWorkout = () => { 
         setActiveSession(null); 
-        setCurrentView({ page: 'workouts' });
+        navigateTo({ page: 'workouts' });
     };
     
     if (!workout) {

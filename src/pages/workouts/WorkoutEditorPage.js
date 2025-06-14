@@ -10,7 +10,7 @@ import { ImageModal } from '../../components/modals/ImageModal';
 
 //export function WorkoutEditor({ workout, onSave, onCancel, allExercises, history }) {
 export function WorkoutEditor() {
-    const { workouts, setWorkouts, currentView, setCurrentView, exercises, history } = useAppContext();
+    const { workouts, setWorkouts, currentView, navigateTo, exercises, history } = useAppContext();
 
     const workout = workouts.find(w => w.id === currentView.id);
 
@@ -19,12 +19,12 @@ export function WorkoutEditor() {
     // Salvar: atualiza o treino na lista e volta para a tela de listagem
     const onSave = (updatedWorkout) => {
         setWorkouts(workouts.map(w => w.id === updatedWorkout.id ? updatedWorkout : w));
-        setCurrentView({ page: 'workouts' }); // volta para a lista de treinos
+        navigateTo({ page: 'workouts' }); // volta para a lista de treinos
     };
 
     // Cancelar: apenas volta para a tela de listagem sem salvar
     const onCancel = () => {
-        setCurrentView({ page: 'workouts' });
+        navigateTo({ page: 'workouts' });
     };
 
     const [isSelecting, setIsSelecting] = useState(false);

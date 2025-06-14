@@ -2,9 +2,8 @@ import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers,  User, LogOut,  Repea
 import { useAppContext } from '../../context/AppContext';
 import { APP_VERSION } from '../../constants/initialData';
 
-//export function Sidebar({ currentView, setCurrentView, isSidebarOpen, setIsSidebarOpen, onLogout, activeWorkoutName, onReturnToWorkout }) {
-export function Sidebar({  isSidebarOpen, setIsSidebarOpen, onLogout }) {
-  const { currentView, setCurrentView, activeSession, workouts } = useAppContext();
+export default function Sidebar({  isSidebarOpen, setIsSidebarOpen, onLogout }) {
+  const { currentView, navigateTo, activeSession, workouts } = useAppContext();
     
     const activeWorkout = activeSession ? workouts.find(w => w.id === activeSession.workoutId) : null;
 
@@ -17,14 +16,14 @@ export function Sidebar({  isSidebarOpen, setIsSidebarOpen, onLogout }) {
     ];
     
     const handleNav = (page) => {
-        setCurrentView({ page });
+        navigateTo({ page });
         if (window.innerWidth < 768) {
             setIsSidebarOpen(false);
         }
     };
 
     const handleReturnToWorkout = () => {
-        setCurrentView({ page: 'workouts', mode: 'training' });
+        navigateTo({ page: 'workouts', mode: 'training' });
         if (window.innerWidth < 768) {
             setIsSidebarOpen(false);
         }

@@ -4,13 +4,12 @@ import { useAppContext } from '../../context/AppContext';
 
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
-//export function WorkoutsPage({ workouts, setWorkouts, allExercises, onStartWorkout, history, setCurrentView }) {
 export function WorkoutsPage() {
-    const { workouts, setWorkouts, startWorkoutSession, setCurrentView } = useAppContext();
+    const { workouts, setWorkouts, startWorkoutSession, navigateTo } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const calculateAverageTime = (workout) => { const totalSets = workout.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets, 10) || 0), 0); return totalSets * 2; };
-    const handleCreate = () => setCurrentView({ page: 'workouts', mode: 'edit', id: null });
-    const handleEdit = (workout) => setCurrentView({ page: 'workouts', mode: 'edit', id: workout.id });
+    const handleCreate = () => navigateTo({ page: 'workouts', mode: 'edit', id: null });
+    const handleEdit = (workout) => navigateTo({ page: 'workouts', mode: 'edit', id: workout.id });
     const handleDelete = (id) => { setWorkouts(workouts.filter(w => w.id !== id)); setItemToDelete(null); };
     
     return (

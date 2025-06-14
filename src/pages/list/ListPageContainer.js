@@ -7,9 +7,8 @@ import { HistoryModal } from '../../components/modals/HistoryModal';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import { useAppContext } from '../../context/AppContext';
 
-//export function ListPageContainer({ pageTitle, itemType, setCurrentView, muscleGroups, exercises, setExercises, setMuscleGroups, history }) {
 export function ListPageContainer( { pageTitle, itemType }) {
-    const {setCurrentView, muscleGroups, exercises, setExercises, setMuscleGroups, history } = useAppContext();
+    const {navigateTo, muscleGroups, exercises, setExercises, setMuscleGroups, history } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGroup, setFilterGroup] = useState('');
@@ -51,13 +50,13 @@ export function ListPageContainer( { pageTitle, itemType }) {
                             {itemType === 'exercises' && item.imageUrl && <button onClick={() => setImageModalUrl(item.imageUrl)} className="btn-icon text-gray-400 hover:text-purple-400"><ImageIcon size={20}/></button>}
                             {itemType === 'exercises' && exerciseHasHistory(item.id) && <button onClick={() => setHistoryModalExercise(item)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={20}/></button>}
                             {itemType === 'exercises' && item.videoUrl && <button onClick={() => setVideoModalUrl(item.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={20}/></button>}
-                            <button onClick={() => setCurrentView({ page: itemType, mode: 'edit', id: item.id })} className="btn-icon text-gray-400 hover:text-yellow-400"><Edit size={20}/></button>
+                            <button onClick={() => navigateTo({ page: itemType, mode: 'edit', id: item.id })} className="btn-icon text-gray-400 hover:text-yellow-400"><Edit size={20}/></button>
                             <button onClick={() => setItemToDelete(item.id)} className="btn-icon text-gray-400 hover:text-red-500"><Trash2 size={20}/></button>
                         </div>
                     </div>
                 ))}
             </div>
-            <button onClick={() => setCurrentView({ page: itemType, mode: 'create' })} className="fixed bottom-8 right-8 btn-primary !rounded-full !p-4 z-10 shadow-lg animate-fade-in" aria-label={`Adicionar ${itemType}`}><Plus size={28}/></button>
+            <button onClick={() => navigateTo({ page: itemType, mode: 'create' })} className="fixed bottom-8 right-8 btn-primary !rounded-full !p-4 z-10 shadow-lg animate-fade-in" aria-label={`Adicionar ${itemType}`}><Plus size={28}/></button>
         </div>
     );
 }
