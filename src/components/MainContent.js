@@ -8,7 +8,7 @@ import { ListPageContainer } from '../pages/list/ListPageContainer';
 import { GroupFormPage } from '../pages/groups/GroupFormPage';
 import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
 import { WorkoutsPage } from '../pages/workouts/WorkoutsListPage';
-import { TrainingModePage } from '../pages/workouts/TrainingModePage';
+import TrainingModePage from '../pages/workouts/TrainingModePage';
 import { WorkoutEditor } from '../pages/workouts/WorkoutEditorPage';
 
 export default function MainContent() {

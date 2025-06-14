@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Trash2,  Save, X,  Youtube,  TrendingUp } from 'lucide-react';
+import { Plus, Trash2,  Save, X,  Youtube,  TrendingUp, Image as ImageIcon } from 'lucide-react';
 
 import { AddExerciseToWorkoutModal } from '../../components/modals/AddExerciseToWorkoutModal';
 import { YouTubePlayerModal } from '../../components/modals/YouTubePlayerModal';
 import { HistoryModal } from '../../components/modals/HistoryModal';
 import { InputField } from '../../components/ui/InputField';
 import { useAppContext } from '../../context/AppContext';
+import { ImageModal } from '../../components/modals/ImageModal';
 
 //export function WorkoutEditor({ workout, onSave, onCancel, allExercises, history }) {
 export function WorkoutEditor() {
@@ -28,6 +29,7 @@ export function WorkoutEditor() {
 
     const [isSelecting, setIsSelecting] = useState(false);
     const [videoModalUrl, setVideoModalUrl] = useState(null);
+    const [imageModalUrl, setImageModalUrl] = useState(null);
     const [historyModalExercise, setHistoryModalExercise] = useState(null);
     const handleNameChange = (e) => setEditedWorkout({ ...editedWorkout, name: e.target.value });
     const handleAddExercises = (selectedIds) => {
@@ -44,6 +46,7 @@ export function WorkoutEditor() {
         <div className="animate-fade-in pb-20">
              {isSelecting && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsSelecting(false)} />}
              {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
+             {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
              {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
             <div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">Editando Treino</h1><div className="flex gap-4"><button onClick={() => onSave(editedWorkout)} className="btn-primary"><Save size={20}/><span>Salvar</span></button><button onClick={onCancel} className="btn-secondary"><X size={20}/><span>Cancelar</span></button></div></div>
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg"><InputField label="Nome do Treino" value={editedWorkout.name} onChange={handleNameChange} /><h3 className="text-xl font-semibold text-white mt-6 mb-4">Exercícios do Treino</h3>
@@ -55,6 +58,7 @@ export function WorkoutEditor() {
                                 <div className="flex justify-between items-center mb-2"><p className="font-bold text-lg">{fullExercise.name}</p>
                                     <div className="flex items-center gap-2">
                                         {exerciseHasHistory(ex.exerciseId) && <button onClick={() => setHistoryModalExercise(fullExercise)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={18}/></button>}
+                                        {fullExercise.imageUrl && <button onClick={() => setImageModalUrl(fullExercise.imageUrl)} className="btn-icon text-gray-400 hover:text-purple-400"><ImageIcon size={18}/></button>}
                                         {fullExercise.videoUrl && <button onClick={() => setVideoModalUrl(fullExercise.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={18}/></button>}
                                         <button onClick={() => handleRemoveExercise(ex.workoutExerciseId)} className="btn-icon text-gray-400 hover:text-red-500"><Trash2 size={18}/></button>
                                     </div>
