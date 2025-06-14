@@ -1,4 +1,7 @@
-// --- Modelos de Dados Iniciais ---
+// Este ficheiro centraliza todos os dados iniciais, incluindo a versão da aplicação.
+
+export const APP_VERSION = '0.0.2';
+
 export const initialMuscleGroups = [
     { id: 1, name: 'Peito' }, { id: 2, name: 'Costas' }, { id: 3, name: 'Pernas' },
     { id: 4, name: 'Ombros' }, { id: 5, name: 'Tríceps' }, { id: 6, name: 'Bíceps' },

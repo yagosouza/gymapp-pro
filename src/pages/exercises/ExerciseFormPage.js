@@ -4,8 +4,14 @@ import { InputField } from '../../components/ui/InputField';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import { useAppContext } from '../../context/AppContext';
 
-export function ExerciseFormPage({ exercise, onSave, onCancel }){
-    const { exercises, setExercises, muscleGroups } = useAppContext();
+export function ExerciseFormPage(){
+    const { exercises, setExercises, muscleGroups, currentView, setCurrentView } = useAppContext();
+
+    const exercise = exercises.find(ex => ex.id === currentView.id);
+
+    const onSave = () => setCurrentView({ page: 'exercises' });
+    const onCancel = () => setCurrentView({ page: 'exercises' });
+
     const [formState, setFormState] = useState(exercise ? { ...exercise, secondaryMuscleGroupIds: exercise.secondaryMuscleGroupIds || [] } : { name: '', muscleGroupId: '', secondaryMuscleGroupIds: [], suggestedSets: '', suggestedReps: '', suggestedWeight: '', videoUrl: '', imageUrl: '' });
     const handleInputChange = (e) => setFormState({ ...formState, [e.target.name]: e.target.value });
     const handleSecondaryGroupChange = (groupId) => {

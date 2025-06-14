@@ -6,7 +6,7 @@ import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
 //export function WorkoutsPage({ workouts, setWorkouts, allExercises, onStartWorkout, history, setCurrentView }) {
 export function WorkoutsPage() {
-    const { workouts, setWorkouts, setCurrentView, onStartWorkout } = useAppContext();
+    const { workouts, setWorkouts, startWorkoutSession, setCurrentView } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const calculateAverageTime = (workout) => { const totalSets = workout.exercises.reduce((acc, ex) => acc + (parseInt(ex.sets, 10) || 0), 0); return totalSets * 2; };
     const handleCreate = () => setCurrentView({ page: 'workouts', mode: 'edit', id: null });
@@ -28,7 +28,7 @@ export function WorkoutsPage() {
                                     {w.lastCompleted && <p className="text-xs text-gray-500 mt-1">Última vez: {new Date(w.lastCompleted).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'})}</p>}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => onStartWorkout(w.id)} className="btn-icon text-green-400 hover:bg-green-800/50"><PlayCircle size={24}/></button>
+                                    <button onClick={() => startWorkoutSession(w.id)} className="btn-icon text-green-400 hover:bg-green-800/50"><PlayCircle size={24}/></button>
                                     <button onClick={() => handleEdit(w)} className="btn-icon text-gray-400 hover:text-yellow-400"><Edit size={20}/></button>
                                     <button onClick={() => setItemToDelete(w.id)} className="btn-icon text-gray-400 hover:text-red-500"><Trash2 size={20}/></button>
                                 </div>

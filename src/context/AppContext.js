@@ -21,6 +21,7 @@ export const AppProvider = ({ children }) => {
 
     const startWorkoutSession = (workoutId) => {
         const workoutToStart = workouts.find(w => w.id === workoutId);
+        console.log('Iniciando treino:', workoutToStart);
         if (!workoutToStart) return;
         setActiveSession({
             workoutId: workoutId,
@@ -47,4 +48,3 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useAppContext = () => useContext(AppContext);
-

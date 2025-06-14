@@ -3,8 +3,13 @@ import { Save, X } from 'lucide-react';
 import { InputField } from '../../components/ui/InputField';
 import { useAppContext } from '../../context/AppContext';
 
-export function GroupFormPage({ group, onSave, onCancel }) {
-    const { muscleGroups, setMuscleGroups } = useAppContext();
+export function GroupFormPage() {
+    const { muscleGroups, setMuscleGroups, currentView, setCurrentView } = useAppContext();
+
+    const group = muscleGroups.find(g => g.id === currentView.id);
+    const onSave = () => setCurrentView({ page: 'groups' });
+    const onCancel = () => setCurrentView({ page: 'groups' });
+
     const [name, setName] = useState(group ? group.name : '');
     const handleSubmit = (e) => {
         e.preventDefault();

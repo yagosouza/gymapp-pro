@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 
 import { ModalBase } from './ModalBase.js';
 import { InputField } from '../ui/InputField.js';
+import { useAppContext } from '../../context/AppContext.js';
 
-export function AddExerciseToWorkoutModal({ allExercises, existingIds, onAdd, onClose }) {
+export function AddExerciseToWorkoutModal({ existingIds, onAdd, onClose }) {
+    const { exercises } = useAppContext();
+
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const availableExercises = allExercises.filter(ex => !existingIds.includes(ex.id) && ex.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const availableExercises = exercises.filter(ex => !existingIds.includes(ex.id) && ex.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const toggleSelection = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     return (
       <ModalBase onClose={onClose} title="Adicionar Exercícios ao Treino">

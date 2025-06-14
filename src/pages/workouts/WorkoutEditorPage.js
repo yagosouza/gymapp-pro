@@ -7,26 +7,42 @@ import { HistoryModal } from '../../components/modals/HistoryModal';
 import { InputField } from '../../components/ui/InputField';
 import { useAppContext } from '../../context/AppContext';
 
-export function WorkoutEditor(onSave, onCancel) {
-    const { workout, allExercises, history } = useAppContext();
+//export function WorkoutEditor({ workout, onSave, onCancel, allExercises, history }) {
+export function WorkoutEditor() {
+    const { workouts, setWorkouts, currentView, setCurrentView, exercises, history } = useAppContext();
+
+    const workout = workouts.find(w => w.id === currentView.id);
+
     const [editedWorkout, setEditedWorkout] = useState(workout);
+
+    // Salvar: atualiza o treino na lista e volta para a tela de listagem
+    const onSave = (updatedWorkout) => {
+        setWorkouts(workouts.map(w => w.id === updatedWorkout.id ? updatedWorkout : w));
+        setCurrentView({ page: 'workouts' }); // volta para a lista de treinos
+    };
+
+    // Cancelar: apenas volta para a tela de listagem sem salvar
+    const onCancel = () => {
+        setCurrentView({ page: 'workouts' });
+    };
+
     const [isSelecting, setIsSelecting] = useState(false);
     const [videoModalUrl, setVideoModalUrl] = useState(null);
     const [historyModalExercise, setHistoryModalExercise] = useState(null);
     const handleNameChange = (e) => setEditedWorkout({ ...editedWorkout, name: e.target.value });
     const handleAddExercises = (selectedIds) => {
-        const newExercises = selectedIds.map(id => { const ex = allExercises.find(e => e.id === id); return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', notes: '' }; });
+        const newExercises = selectedIds.map(id => { const ex = exercises.find(e => e.id === id); return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', notes: '' }; });
         setEditedWorkout({ ...editedWorkout, exercises: [...editedWorkout.exercises, ...newExercises] });
         setIsSelecting(false);
     };
     const handleUpdateExerciseDetail = (workoutExId, field, value) => { const updated = editedWorkout.exercises.map(ex => ex.workoutExerciseId === workoutExId ? { ...ex, [field]: value } : ex); setEditedWorkout({ ...editedWorkout, exercises: updated }); };
     const handleRemoveExercise = (workoutExId) => { setEditedWorkout({ ...editedWorkout, exercises: editedWorkout.exercises.filter(ex => ex.workoutExerciseId !== workoutExId) }); };
-    const getExerciseDetails = (id) => allExercises.find(e => e.id === id) || {};
+    const getExerciseDetails = (id) => exercises.find(e => e.id === id) || {};
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
 
     return (
         <div className="animate-fade-in pb-20">
-             {isSelecting && <AddExerciseToWorkoutModal allExercises={allExercises} existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsSelecting(false)} />}
+             {isSelecting && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsSelecting(false)} />}
              {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
              {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
             <div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">Editando Treino</h1><div className="flex gap-4"><button onClick={() => onSave(editedWorkout)} className="btn-primary"><Save size={20}/><span>Salvar</span></button><button onClick={onCancel} className="btn-secondary"><X size={20}/><span>Cancelar</span></button></div></div>

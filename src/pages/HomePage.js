@@ -2,9 +2,9 @@ import { Dumbbell, ClipboardList, CheckCircle, ExternalLink} from 'lucide-react'
 import { calculateBMI, calculateBodyFat } from "../utils/calculations";
 import { useAppContext } from '../context/AppContext';
 
+//export function HomePage({ workouts, exercises, profile, setCurrentView }) {
 export function HomePage() {
     const { workouts, exercises, profile, setCurrentView } = useAppContext();
-//export function HomePage({ workouts, exercises, profile, setCurrentView }) {
     const lastWorkout = workouts.filter(w => w.lastCompleted).sort((a,b) => new Date(b.lastCompleted) - new Date(a.lastCompleted))[0];
     const latestRecord = profile.measurementHistory.slice(-1)[0] || {};
     const bmi = calculateBMI(latestRecord.weight, profile.height);

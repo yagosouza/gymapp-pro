@@ -7,7 +7,8 @@ import { HistoryModal } from '../../components/modals/HistoryModal';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import { useAppContext } from '../../context/AppContext';
 
-export function ListPageContainer(pageTitle, itemType) {
+//export function ListPageContainer({ pageTitle, itemType, setCurrentView, muscleGroups, exercises, setExercises, setMuscleGroups, history }) {
+export function ListPageContainer( { pageTitle, itemType }) {
     const {setCurrentView, muscleGroups, exercises, setExercises, setMuscleGroups, history } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
