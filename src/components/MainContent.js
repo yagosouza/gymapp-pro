@@ -7,7 +7,7 @@ import { ProfilePage } from '../pages/profile/ProfilePage';
 import ListPageContainer from '../pages/list/ListPageContainer';
 import { GroupFormPage } from '../pages/groups/GroupFormPage';
 import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
-import { WorkoutsPage } from '../pages/workouts/WorkoutsListPage';
+import WorkoutsListPage from '../pages/workouts/WorkoutsListPage';
 import TrainingModePage from '../pages/workouts/TrainingModePage';
 import WorkoutEditorPage from '../pages/workouts/WorkoutEditorPage';
 
@@ -34,7 +34,7 @@ export default function MainContent() {
         if (currentView.mode === 'edit') {
             return <WorkoutEditorPage /> 
         }
-        return <WorkoutsPage />;
+        return <WorkoutsListPage />;
       default: return <HomePage />;
     }
 }
