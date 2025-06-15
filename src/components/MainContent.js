@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 // Importe todas as suas páginas aqui
 import { HomePage } from '../pages/HomePage';
 import { ProfilePage } from '../pages/profile/ProfilePage';
-import { ListPageContainer } from '../pages/list/ListPageContainer';
+import ListPageContainer from '../pages/list/ListPageContainer';
 import { GroupFormPage } from '../pages/groups/GroupFormPage';
 import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
 import { WorkoutsPage } from '../pages/workouts/WorkoutsListPage';

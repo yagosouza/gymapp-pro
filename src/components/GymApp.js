@@ -8,7 +8,7 @@ import { Menu } from 'lucide-react';
 import { GlobalStyles } from './ui/GlobalStyles';
 
 export default function GymApp({ onLogout }) {
-    const { setActiveSession, goBack } = useAppContext();
+    const { currentView, setActiveSession, goBack } = useAppContext();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const touchStartRef = useRef(null);
     
@@ -68,6 +68,17 @@ export default function GymApp({ onLogout }) {
         };
     }, []);
 
+    const getPageTitle = () => {
+        switch (currentView.page) {
+            case 'home': return 'Início';
+            case 'profile': return 'Meu Perfil';
+            case 'groups': return 'Grupos Musculares';
+            case 'exercises': return 'Exercícios';
+            case 'workouts': return 'Meus Treinos';
+            default: return 'GymApp Pro';
+        }
+    };
+
     return (
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
             <GlobalStyles />
@@ -81,7 +92,7 @@ export default function GymApp({ onLogout }) {
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md hover:bg-gray-700">
                         <Menu size={24} />
                     </button>
-                    <h1 className="text-xl font-semibold ml-4">GymApp Pro</h1>
+                    <h1 className="text-xl font-semibold ml-4">{getPageTitle()}</h1>
                 </div>
                 <div className="p-4 sm:p-6 lg:p-8 flex-1">
                     <MainContent />
