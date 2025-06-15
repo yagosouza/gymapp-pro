@@ -1,6 +1,6 @@
 import { ModalBase } from './ModalBase.js';
 
-export function HistoryModal({ exercise, history, onClose }) {
+export default function HistoryModal({ exercise, history, onClose }) {
     const exerciseHistory = history
         .flatMap(h => h.exerciseLogs.map(log => ({ ...log, date: h.completionDate })))
         .filter(log => log.exerciseId === exercise.id)

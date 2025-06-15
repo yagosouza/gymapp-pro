@@ -1,46 +1,58 @@
 import React, { useState } from 'react';
-import { Plus, Trash2,  Save, X,  Youtube,  TrendingUp, Image as ImageIcon } from 'lucide-react';
-
-import { AddExerciseToWorkoutModal } from '../../components/modals/AddExerciseToWorkoutModal';
-import { YouTubePlayerModal } from '../../components/modals/YouTubePlayerModal';
-import { HistoryModal } from '../../components/modals/HistoryModal';
-import { InputField } from '../../components/ui/InputField';
 import { useAppContext } from '../../context/AppContext';
-import { ImageModal } from '../../components/modals/ImageModal';
+import { Save, X, Plus, Youtube, TrendingUp, Trash2, Image as ImageIcon } from 'lucide-react';
+import AddExerciseToWorkoutModal from '../../components/modals/AddExerciseToWorkoutModal';
+import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
+import ImageModal from '../../components/modals/ImageModal';
+import HistoryModal from '../../components/modals/HistoryModal';
+import { InputField } from '../../components/ui/InputField';
 
-//export function WorkoutEditor({ workout, onSave, onCancel, allExercises, history }) {
-export function WorkoutEditor() {
-    const { workouts, setWorkouts, currentView, navigateTo, exercises, history } = useAppContext();
-
-    const workout = workouts.find(w => w.id === currentView.id);
-
+export default function WorkoutEditorPage() {
+    const { workouts, setWorkouts, exercises, history, currentView, navigateTo } = useAppContext();
+    
+    const workout = currentView.id ? workouts.find(w => w.id === currentView.id) : { name: 'Novo Treino', exercises: [] };
+    
     const [editedWorkout, setEditedWorkout] = useState(workout);
-
-    // Salvar: atualiza o treino na lista e volta para a tela de listagem
-    const onSave = (updatedWorkout) => {
-        setWorkouts(workouts.map(w => w.id === updatedWorkout.id ? updatedWorkout : w));
-        navigateTo({ page: 'workouts' }); // volta para a lista de treinos
-    };
-
-    // Cancelar: apenas volta para a tela de listagem sem salvar
-    const onCancel = () => {
-        navigateTo({ page: 'workouts' });
-    };
-
     const [isSelecting, setIsSelecting] = useState(false);
     const [videoModalUrl, setVideoModalUrl] = useState(null);
     const [imageModalUrl, setImageModalUrl] = useState(null);
     const [historyModalExercise, setHistoryModalExercise] = useState(null);
+
     const handleNameChange = (e) => setEditedWorkout({ ...editedWorkout, name: e.target.value });
+    
     const handleAddExercises = (selectedIds) => {
-        const newExercises = selectedIds.map(id => { const ex = exercises.find(e => e.id === id); return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', notes: '' }; });
+        const newExercises = selectedIds.map(id => { 
+            const ex = exercises.find(e => e.id === id);
+            return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', notes: '' };
+        });
         setEditedWorkout({ ...editedWorkout, exercises: [...editedWorkout.exercises, ...newExercises] });
         setIsSelecting(false);
     };
-    const handleUpdateExerciseDetail = (workoutExId, field, value) => { const updated = editedWorkout.exercises.map(ex => ex.workoutExerciseId === workoutExId ? { ...ex, [field]: value } : ex); setEditedWorkout({ ...editedWorkout, exercises: updated }); };
-    const handleRemoveExercise = (workoutExId) => { setEditedWorkout({ ...editedWorkout, exercises: editedWorkout.exercises.filter(ex => ex.workoutExerciseId !== workoutExId) }); };
+
+    const handleUpdateExerciseDetail = (workoutExId, field, value) => {
+        const updated = editedWorkout.exercises.map(ex => ex.workoutExerciseId === workoutExId ? { ...ex, [field]: value } : ex);
+        setEditedWorkout({ ...editedWorkout, exercises: updated });
+    };
+
+    const handleRemoveExercise = (workoutExId) => {
+        setEditedWorkout({ ...editedWorkout, exercises: editedWorkout.exercises.filter(ex => ex.workoutExerciseId !== workoutExId) });
+    };
+
     const getExerciseDetails = (id) => exercises.find(e => e.id === id) || {};
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
+    
+    const onSave = () => {
+        if (currentView.id) { 
+            setWorkouts(workouts.map(w => w.id === currentView.id ? editedWorkout : w));
+        } else { 
+            setWorkouts([...workouts, {...editedWorkout, id: Date.now()}]); 
+        }
+        navigateTo({ page: 'workouts' });
+    };
+
+    const onCancel = () => {
+        navigateTo({ page: 'workouts' });
+    }
 
     return (
         <div className="animate-fade-in pb-20">
@@ -48,7 +60,7 @@ export function WorkoutEditor() {
              {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
              {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
              {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
-            <div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">Editando Treino</h1><div className="flex gap-4"><button onClick={() => onSave(editedWorkout)} className="btn-primary"><Save size={20}/><span>Salvar</span></button><button onClick={onCancel} className="btn-secondary"><X size={20}/><span>Cancelar</span></button></div></div>
+            <div className="flex justify-between items-center mb-6"><h1 className="text-3xl font-bold text-white">{workout.id ? 'Editar' : 'Novo'} Treino</h1><div className="flex gap-4"><button onClick={onSave} className="btn-primary"><Save size={20}/><span>Salvar</span></button><button onClick={onCancel} className="btn-secondary"><X size={20}/><span>Cancelar</span></button></div></div>
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg"><InputField label="Nome do Treino" value={editedWorkout.name} onChange={handleNameChange} /><h3 className="text-xl font-semibold text-white mt-6 mb-4">Exercícios do Treino</h3>
                 <div className="space-y-4">
                     {editedWorkout.exercises.map(ex => {

@@ -4,7 +4,7 @@ import { ModalBase } from './ModalBase.js';
 import { InputField } from '../ui/InputField.js';
 import { useAppContext } from '../../context/AppContext.js';
 
-export function AddExerciseToWorkoutModal({ existingIds, onAdd, onClose }) {
+export default function AddExerciseToWorkoutModal({ existingIds, onAdd, onClose }) {
     const { exercises } = useAppContext();
 
     const [selectedIds, setSelectedIds] = useState([]);

@@ -1,6 +1,6 @@
 import { ModalBase } from "./ModalBase.js";
 
-export function YouTubePlayerModal({ url, onClose }) {
+export default function YouTubePlayerModal({ url, onClose }) {
   const getYouTubeId = (url) => {
     let ID = "";
     url = url

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
-import { YouTubePlayerModal } from '../../components/modals/YouTubePlayerModal';
-import { ImageModal } from '../../components/modals/ImageModal';
-import { HistoryModal } from '../../components/modals/HistoryModal';
+import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
+import ImageModal from '../../components/modals/ImageModal';
+import HistoryModal from '../../components/modals/HistoryModal';
 import { InputField } from '../../components/ui/InputField';
 import { StopCircle, CheckCircle, TrendingUp, Youtube, Image as ImageIcon } from 'lucide-react';
 

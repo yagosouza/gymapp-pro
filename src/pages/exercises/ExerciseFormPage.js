@@ -3,8 +3,8 @@ import { useAppContext } from '../../context/AppContext';
 import { Save, X, Youtube, ImageIcon, ChevronDown } from 'lucide-react';
 import { InputField } from '../../components/ui/InputField';
 import { CustomSelect } from '../../components/ui/CustomSelect';
-import { YouTubePlayerModal } from '../../components/modals/YouTubePlayerModal';
-import { ImageModal } from '../../components/modals/ImageModal';
+import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
+import ImageModal from '../../components/modals/ImageModal';
 
 export function ExerciseFormPage() {
     const { exercises, setExercises, muscleGroups, currentView, navigateTo } = useAppContext();

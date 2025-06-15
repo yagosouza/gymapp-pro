@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Search, Trash2, Youtube, TrendingUp, Plus } from 'lucide-react';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
-import { YouTubePlayerModal }  from '../../components/modals/YouTubePlayerModal';
-import { ImageModal } from '../../components/modals/ImageModal';
-import { HistoryModal } from '../../components/modals/HistoryModal';
+import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
+import ImageModal from '../../components/modals/ImageModal';
+import HistoryModal from '../../components/modals/HistoryModal';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 
 function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
