@@ -50,7 +50,7 @@ export function ExerciseFormPage() {
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in pb-20">
             {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
             {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
 
@@ -129,4 +129,5 @@ export function ExerciseFormPage() {
         </div>
     );
 }
+
 
