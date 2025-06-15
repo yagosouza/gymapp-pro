@@ -8,7 +8,7 @@ import HistoryModal from '../../components/modals/HistoryModal';
 import { InputField } from '../../components/ui/InputField';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 
-function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest }) {
+function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest, onEditSubstitutes }) {
     const { exercises, history } = useAppContext();
     const [isExpanded, setIsExpanded] = useState(false);
     const [translateX, setTranslateX] = useState(0);
@@ -24,6 +24,7 @@ function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest }) {
         setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
     }, []);
 
+    const getGroupName = (id) => (exercises.find(e => e.id === id) || {}).name || 'N/A';
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
     
     const onTouchStart = (e) => { if (!isTouchDevice) return; touchStartX.current = e.touches[0].clientX; };
@@ -70,7 +71,19 @@ function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest }) {
                                 <InputField label="Peso (kg)" type="number" value={exercise.weight} onChange={(e) => onUpdate('weight', e.target.value)} small/>
                                 <InputField label="Descanso (s)" name="rest" type="number" value={exercise.rest || '60'} onChange={(e) => onUpdate('rest', e.target.value)} small/>
                             </div>
-                             <div className="flex items-center justify-end gap-2 border-t border-gray-600 pt-3">
+                            <div className="border-t border-gray-600 pt-3">
+                                <h4 className="text-md font-semibold text-gray-300 mb-2">Substitutos</h4>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {(exercise.substituteIds || []).map(id => (
+                                        <span key={id} className="flex items-center gap-1 bg-gray-600 text-xs text-gray-200 px-2 py-1 rounded-full">
+                                            {getGroupName(id)}
+                                            <button onClick={() => onUpdate('substituteIds', (exercise.substituteIds || []).filter(subId => subId !== id))}><X size={14} /></button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <button type="button" onClick={onEditSubstitutes} className="text-sm text-blue-400 hover:underline">Adicionar Substituto</button>
+                            </div>
+                             <div className="flex items-center justify-end gap-2 border-t border-gray-600 pt-3 mt-4">
                                 {exerciseHasHistory(fullExercise.id) && <button type="button" onClick={() => setHistoryModalExercise(fullExercise)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={28}/></button>}
                                 {fullExercise.imageUrl && <button type="button" onClick={() => setImageModalUrl(fullExercise.imageUrl)} className="btn-icon text-gray-400 hover:text-purple-400"><ImageIcon size={28}/></button>}
                                 {fullExercise.videoUrl && <button type="button" onClick={() => setVideoModalUrl(fullExercise.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={28}/></button>}
@@ -88,7 +101,8 @@ export default function WorkoutEditorPage() {
     const workout = currentView.id ? workouts.find(w => w.id === currentView.id) : { name: 'Novo Treino', exercises: [] };
     
     const [editedWorkout, setEditedWorkout] = useState(workout);
-    const [isSelecting, setIsSelecting] = useState(false);
+    const [isAddingExercises, setIsAddingExercises] = useState(false);
+    const [editingSubstitutesFor, setEditingSubstitutesFor] = useState(null); // ID do exercício do treino
     const [exerciseToRemove, setExerciseToRemove] = useState(null);
 
     const handleNameChange = (e) => setEditedWorkout({ ...editedWorkout, name: e.target.value });
@@ -96,11 +110,16 @@ export default function WorkoutEditorPage() {
     const handleAddExercises = (selectedIds) => {
         const newExercises = selectedIds.map(id => { 
             const ex = exercises.find(e => e.id === id);
-            return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', rest: ex.suggestedRest || '60', notes: '' };
+            return { workoutExerciseId: Date.now() + id, exerciseId: ex.id, sets: ex.suggestedSets || '3', reps: ex.suggestedReps || '10', weight: ex.suggestedWeight || '', rest: ex.suggestedRest || '60', notes: '', substituteIds: [] };
         });
         setEditedWorkout(prev => ({ ...prev, exercises: [...prev.exercises, ...newExercises] }));
-        setIsSelecting(false);
+        setIsAddingExercises(false);
     };
+
+    const handleAddSubstitutes = (selectedIds) => {
+        handleUpdateExerciseDetail(editingSubstitutesFor, 'substituteIds', selectedIds);
+        setEditingSubstitutesFor(null);
+    }
 
     const handleUpdateExerciseDetail = (workoutExId, field, value) => {
         const updatedExercises = editedWorkout.exercises.map(ex => ex.workoutExerciseId === workoutExId ? { ...ex, [field]: value } : ex);
@@ -126,10 +145,13 @@ export default function WorkoutEditorPage() {
         navigateTo({ page: 'workouts' });
     }
 
+    const exerciseForSubstitutes = editedWorkout.exercises.find(ex => ex.workoutExerciseId === editingSubstitutesFor);
+
     return (
         <div className="animate-fade-in pb-20">
              <ConfirmationModal isOpen={!!exerciseToRemove} onClose={() => setExerciseToRemove(null)} onConfirm={handleRemoveExercise} title="Apagar Exercício do Treino"><p>Tem a certeza que quer remover este exercício do treino?</p></ConfirmationModal>
-             {isSelecting && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsSelecting(false)} />}
+             {isAddingExercises && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsAddingExercises(false)} />}
+             {editingSubstitutesFor && <AddExerciseToWorkoutModal existingIds={[exerciseForSubstitutes.exerciseId, ...(exerciseForSubstitutes.substituteIds || [])]} onAdd={handleAddSubstitutes} onClose={() => setEditingSubstitutesFor(null)} title="Selecionar Substitutos"/>}
             
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <InputField label="Nome do Treino" value={editedWorkout.name} onChange={handleNameChange} />
@@ -141,10 +163,11 @@ export default function WorkoutEditorPage() {
                             exercise={ex}
                             onUpdate={(field, value) => handleUpdateExerciseDetail(ex.workoutExerciseId, field, value)}
                             onDeleteRequest={() => setExerciseToRemove(ex.workoutExerciseId)}
+                            onEditSubstitutes={() => setEditingSubstitutesFor(ex.workoutExerciseId)}
                         />
                     ))}
                 </div>
-                <button type="button" onClick={() => setIsSelecting(true)} className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3 px-5 rounded-lg border-2 border-gray-600 bg-transparent hover:bg-gray-700 transition-colors mt-6">
+                <button type="button" onClick={() => setIsAddingExercises(true)} className="w-full flex items-center justify-center gap-2 text-white font-semibold py-3 px-5 rounded-lg border-2 border-gray-600 bg-transparent hover:bg-gray-700 transition-colors mt-6">
                     <Plus size={20}/>
                     <span>Adicionar Exercício ao Treino</span>
                 </button>
