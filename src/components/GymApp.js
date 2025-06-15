@@ -72,9 +72,21 @@ export default function GymApp({ onLogout }) {
         switch (currentView.page) {
             case 'home': return 'Início';
             case 'profile': return 'Meu Perfil';
-            case 'groups': return 'Grupos Musculares';
-            case 'exercises': return 'Exercícios';
-            case 'workouts': return 'Meus Treinos';
+            case 'groups': {
+                if (currentView.mode === 'edit') return 'Editando Grupo';
+                if (currentView.mode === 'create') return 'Criando Grupo';
+                return 'Grupos Musculares';
+            }
+            case 'exercises': {
+                if (currentView.mode === 'edit') return 'Editando Exercício';
+                if (currentView.mode === 'create') return 'Criando Exercício';
+                return 'Exercícios';
+            }
+            case 'workouts': {
+                if (currentView.mode === 'training') return 'Treino em Andamento';
+                if (currentView.mode === 'edit') return 'Editor de Treino';
+                return 'Meus Treinos';
+            }
             default: return 'GymApp Pro';
         }
     };
