@@ -38,9 +38,11 @@ export default function GymApp({ onLogout }) {
     // Efeito para o gesto de deslizar
     useEffect(() => {
         const handleTouchStart = (e) => {
-            // Guarda a posição inicial do toque apenas se for no canto esquerdo do ecrã
-            if (e.touches[0].clientX < 50) {
-                touchStartRef.current = e.touches[0].clientX;
+            const startX = e.touches[0].clientX;
+            // Ativa o nosso gesto apenas se começar um pouco afastado da borda (ex: entre 20px e 80px)
+            // para não interferir com o gesto "voltar" do iOS que começa na borda.
+            if (startX > 20 && startX < 80) {
+                touchStartRef.current = startX;
             } else {
                 touchStartRef.current = null;
             }
@@ -49,8 +51,9 @@ export default function GymApp({ onLogout }) {
         const handleTouchMove = (e) => {
             if (touchStartRef.current === null) return;
             const touchEnd = e.touches[0].clientX;
+            
             // Se o dedo se moveu mais de 100 pixels para a direita, abre a sidebar
-            if (touchStartRef.current < touchEnd - 100) {
+            if (touchEnd > touchStartRef.current + 100) {
                 setIsSidebarOpen(true);
                 touchStartRef.current = null; // Reseta para não reativar
             }
@@ -84,7 +87,7 @@ export default function GymApp({ onLogout }) {
                     <MainContent />
                 </div>
             </main>
-            <BottomNavBar /> {/* Adicionar o componente */}
+            <BottomNavBar setIsSidebarOpen={setIsSidebarOpen} /> {/* Adicionar o componente */}
             <InstallPWA /> {/* Adicionar o componente de instalação PWA */}
         </div>
     );
