@@ -3,17 +3,34 @@ import { useAppContext } from '../../context/AppContext';
 import { ModalBase } from './ModalBase';
 import { Search, Check } from 'lucide-react';
 
-export default function AddExerciseToWorkoutModal({ existingIds, onAdd, onClose }) {
+export default function AddExerciseToWorkoutModal({ existingIds = [], initialSelectedIds = [], onAdd, onClose, isSingleSelection = false, allowedIds }) {
     const { exercises } = useAppContext();
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedIds, setSelectedIds] = useState(initialSelectedIds);
     const [searchTerm, setSearchTerm] = useState('');
     
-    const availableExercises = exercises.filter(ex => 
-        !existingIds.includes(ex.id) && 
-        ex.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const availableExercises = exercises.filter(ex => {
+        // Primeiro, filtra pelo termo de busca
+        const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!matchesSearch) return false;
+
+        // Se 'allowedIds' for fornecido, a lista deve conter APENAS exercícios desses IDs.
+        if (allowedIds) {
+            return allowedIds.includes(ex.id);
+        }
+
+        // Se não, usa a lógica original com 'existingIds' para não mostrar exercícios já existentes.
+        return !existingIds.includes(ex.id);
+    });
 
     const toggleSelection = (id) => {
+        // Se for para selecionar apenas um...
+        if (isSingleSelection) {
+            // Clicar em um item o seleciona. Clicar nele de novo o deseleciona.
+            setSelectedIds(prev => (prev.includes(id) ? [] : [id]));
+            return;
+        }
+
+        // Lógica original para seleção múltipla
         setSelectedIds(prev => 
             prev.includes(id) 
             ? prev.filter(i => i !== id) 

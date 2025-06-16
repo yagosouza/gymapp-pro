@@ -61,7 +61,7 @@ function RestTimer({ duration, onFinish, onAdjust }) {
 }
 
 // Componente para cada exercício na lista de treino
-function TrainingExerciseItem({ workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete }) {
+function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete }) {
     const { exercises, history, activeSession, setActiveSession } = useAppContext();
     const [isSubstituteModalOpen, setIsSubstituteModalOpen] = useState(false);
     const [videoModalUrl, setVideoModalUrl] = useState(null);
@@ -70,8 +70,8 @@ function TrainingExerciseItem({ workoutExerciseId, log, isExpanded, onToggleExpa
 
     const fullExerciseDetails = exercises.find(e => e.id === log.currentExerciseId) || {};
     const originalExerciseDetails = exercises.find(e => e.id === log.originalExerciseId) || {};
-    const substitutes = (originalExerciseDetails.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
-    
+    const substitutes = (workoutExercise.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
+
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
 
     const handleLogChange = (setIndex, field, value) => {
@@ -115,7 +115,17 @@ function TrainingExerciseItem({ workoutExerciseId, log, isExpanded, onToggleExpa
     
     return (
         <div className={`bg-gray-800 rounded-xl shadow-lg transition-all duration-300 ${log.sets.every(s => s.completed) ? 'opacity-50' : ''}`}>
-            {isSubstituteModalOpen && <AddExerciseToWorkoutModal existingIds={[log.originalExerciseId, ...substitutes.map(s => s.id)]} onAdd={handleSubstitute} onClose={() => setIsSubstituteModalOpen(false)} title={`Substituir ${originalExerciseDetails.name}`}/>}
+            {isSubstituteModalOpen && 
+                <AddExerciseToWorkoutModal 
+                    // Nova prop para limitar a lista de exercícios exibidos
+                    onAdd={handleSubstitute} 
+                    onClose={() => setIsSubstituteModalOpen(false)} 
+                    title={`Substituir ${originalExerciseDetails.name}`}
+                    // Nova prop para garantir que apenas um substituto seja escolhido
+                    isSingleSelection={true} 
+                    allowedIds={substitutes.map(s => s.id)}
+                />
+            }
             {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
             {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
             {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
@@ -208,6 +218,7 @@ export default function TrainingModePage() {
                 {workout.exercises.map(ex => (
                     <TrainingExerciseItem 
                         key={ex.workoutExerciseId} 
+                        workoutExercise={ex}
                         workoutExerciseId={ex.workoutExerciseId} 
                         log={activeSession.logs[ex.workoutExerciseId]} 
                         isExpanded={expandedExercise === ex.workoutExerciseId}

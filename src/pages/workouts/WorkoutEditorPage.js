@@ -69,7 +69,7 @@ function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest, onEditSubsti
                                 <InputField label="Séries" type="number" value={exercise.sets} onChange={(e) => onUpdate('sets', e.target.value)} small/>
                                 <InputField label="Reps" type="number" value={exercise.reps} onChange={(e) => onUpdate('reps', e.target.value)} small/>
                                 <InputField label="Peso (kg)" type="number" value={exercise.weight} onChange={(e) => onUpdate('weight', e.target.value)} small/>
-                                <InputField label="Descanso (s)" name="rest" type="number" value={exercise.rest || '60'} onChange={(e) => onUpdate('rest', e.target.value)} small/>
+                                <InputField label="Descanso (s)" name="rest" type="number" value={exercise.rest || ''} onChange={(e) => onUpdate('rest', e.target.value)} small/>
                             </div>
                             <div className="border-t border-gray-600 pt-3">
                                 <h4 className="text-md font-semibold text-gray-300 mb-2">Substitutos</h4>
@@ -133,6 +133,8 @@ export default function WorkoutEditorPage() {
     };
 
     const onSave = () => {
+        console.log('[DEBUG-1] Objeto do treino pronto para salvar:', editedWorkout); 
+
         if (currentView.id) { 
             setWorkouts(workouts.map(w => w.id === currentView.id ? editedWorkout : w));
         } else { 
@@ -151,8 +153,16 @@ export default function WorkoutEditorPage() {
         <div className="animate-fade-in pb-20">
              <ConfirmationModal isOpen={!!exerciseToRemove} onClose={() => setExerciseToRemove(null)} onConfirm={handleRemoveExercise} title="Apagar Exercício do Treino"><p>Tem a certeza que quer remover este exercício do treino?</p></ConfirmationModal>
              {isAddingExercises && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsAddingExercises(false)} />}
-             {editingSubstitutesFor && <AddExerciseToWorkoutModal existingIds={[exerciseForSubstitutes.exerciseId, ...(exerciseForSubstitutes.substituteIds || [])]} onAdd={handleAddSubstitutes} onClose={() => setEditingSubstitutesFor(null)} title="Selecionar Substitutos"/>}
-            
+             {editingSubstitutesFor && 
+                <AddExerciseToWorkoutModal 
+                    existingIds={[exerciseForSubstitutes.exerciseId]} 
+                    initialSelectedIds={exerciseForSubstitutes.substituteIds || []} // <<-- LINHA ADICIONADA
+                    onAdd={handleAddSubstitutes} 
+                    onClose={() => setEditingSubstitutesFor(null)} 
+                    title="Selecionar Substitutos"
+                />
+             }
+
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <InputField label="Nome do Treino" value={editedWorkout.name} onChange={handleNameChange} />
                 <h3 className="text-xl font-semibold text-white mt-6 mb-4">Exercícios do Treino</h3>
