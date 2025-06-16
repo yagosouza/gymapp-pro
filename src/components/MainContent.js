@@ -4,12 +4,12 @@ import { useAppContext } from '../context/AppContext';
 // Importe todas as suas páginas aqui
 import { HomePage } from '../pages/HomePage';
 import { ProfilePage } from '../pages/profile/ProfilePage';
-import { ListPageContainer } from '../pages/list/ListPageContainer';
+import ListPageContainer from '../pages/list/ListPageContainer';
 import { GroupFormPage } from '../pages/groups/GroupFormPage';
 import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
-import { WorkoutsPage } from '../pages/workouts/WorkoutsListPage';
+import WorkoutsListPage from '../pages/workouts/WorkoutsListPage';
 import TrainingModePage from '../pages/workouts/TrainingModePage';
-import { WorkoutEditor } from '../pages/workouts/WorkoutEditorPage';
+import WorkoutEditorPage from '../pages/workouts/WorkoutEditorPage';
 
 export default function MainContent() {
     const { currentView } = useAppContext();
@@ -32,9 +32,9 @@ export default function MainContent() {
           return <TrainingModePage />;
         }
         if (currentView.mode === 'edit') {
-            return <WorkoutEditor /> 
+            return <WorkoutEditorPage /> 
         }
-        return <WorkoutsPage />;
+        return <WorkoutsListPage />;
       default: return <HomePage />;
     }
 }

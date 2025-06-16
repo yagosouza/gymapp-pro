@@ -8,7 +8,7 @@ import { Menu } from 'lucide-react';
 import { GlobalStyles } from './ui/GlobalStyles';
 
 export default function GymApp({ onLogout }) {
-    const { setActiveSession, goBack } = useAppContext();
+    const { currentView, setActiveSession, goBack } = useAppContext();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const touchStartRef = useRef(null);
     
@@ -38,9 +38,11 @@ export default function GymApp({ onLogout }) {
     // Efeito para o gesto de deslizar
     useEffect(() => {
         const handleTouchStart = (e) => {
-            // Guarda a posição inicial do toque apenas se for no canto esquerdo do ecrã
-            if (e.touches[0].clientX < 50) {
-                touchStartRef.current = e.touches[0].clientX;
+            const startX = e.touches[0].clientX;
+            // Ativa o nosso gesto apenas se começar um pouco afastado da borda (ex: entre 20px e 80px)
+            // para não interferir com o gesto "voltar" do iOS que começa na borda.
+            if (startX > 20 && startX < 80) {
+                touchStartRef.current = startX;
             } else {
                 touchStartRef.current = null;
             }
@@ -49,8 +51,9 @@ export default function GymApp({ onLogout }) {
         const handleTouchMove = (e) => {
             if (touchStartRef.current === null) return;
             const touchEnd = e.touches[0].clientX;
+            
             // Se o dedo se moveu mais de 100 pixels para a direita, abre a sidebar
-            if (touchStartRef.current < touchEnd - 100) {
+            if (touchEnd > touchStartRef.current + 100) {
                 setIsSidebarOpen(true);
                 touchStartRef.current = null; // Reseta para não reativar
             }
@@ -65,6 +68,29 @@ export default function GymApp({ onLogout }) {
         };
     }, []);
 
+    const getPageTitle = () => {
+        switch (currentView.page) {
+            case 'home': return 'Início';
+            case 'profile': return 'Meu Perfil';
+            case 'groups': {
+                if (currentView.mode === 'edit') return 'Editando Grupo';
+                if (currentView.mode === 'create') return 'Criando Grupo';
+                return 'Grupos Musculares';
+            }
+            case 'exercises': {
+                if (currentView.mode === 'edit') return 'Editando Exercício';
+                if (currentView.mode === 'create') return 'Criando Exercício';
+                return 'Exercícios';
+            }
+            case 'workouts': {
+                if (currentView.mode === 'training') return 'Treino em Andamento';
+                if (currentView.mode === 'edit') return 'Editor de Treino';
+                return 'Meus Treinos';
+            }
+            default: return 'GymApp Pro';
+        }
+    };
+
     return (
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
             <GlobalStyles />
@@ -78,13 +104,13 @@ export default function GymApp({ onLogout }) {
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md hover:bg-gray-700">
                         <Menu size={24} />
                     </button>
-                    <h1 className="text-xl font-semibold ml-4">GymApp Pro</h1>
+                    <h1 className="text-xl font-semibold ml-4">{getPageTitle()}</h1>
                 </div>
                 <div className="p-4 sm:p-6 lg:p-8 flex-1">
                     <MainContent />
                 </div>
             </main>
-            <BottomNavBar /> {/* Adicionar o componente */}
+            <BottomNavBar setIsSidebarOpen={setIsSidebarOpen} /> {/* Adicionar o componente */}
             <InstallPWA /> {/* Adicionar o componente de instalação PWA */}
         </div>
     );
