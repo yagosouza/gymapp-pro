@@ -43,12 +43,27 @@ export const AppProvider = ({ children }) => {
     const startWorkoutSession = (workoutId) => {
         const workoutToStart = workouts.find(w => w.id === workoutId);
         if (!workoutToStart) return;
+
+        const initialLogs = workoutToStart.exercises.reduce((acc, ex) => {
+            const numSets = parseInt(ex.sets, 10) || 0;
+            acc[ex.workoutExerciseId] = {
+                originalExerciseId: ex.exerciseId,
+                currentExerciseId: ex.exerciseId,
+                sets: Array.from({ length: numSets }, (_, i) => ({
+                    id: Date.now() + i,
+                    reps: ex.reps || '',
+                    weight: ex.weight || '',
+                    completed: false,
+                })),
+                rest: ex.rest || 60
+            };
+            return acc;
+        }, {});
+
         setActiveSession({
             workoutId: workoutId,
-            logs: workoutToStart.exercises.reduce((acc, ex) => {
-                acc[ex.workoutExerciseId] = { sets: ex.sets, reps: ex.reps, weight: ex.weight || '', completed: false };
-                return acc;
-            }, {})
+            logs: initialLogs,
+            startTime: Date.now()
         });
         navigateTo({ page: 'workouts', mode: 'training' });
     };
