@@ -191,7 +191,7 @@ export default function TrainingModePage() {
     }, [findFirstUncompletedExerciseId]);
     
     const handleSetComplete = (restDuration) => {
-        setTimerState({ isRunning: true, duration: restDuration });
+        setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
         const nextUncompletedId = findFirstUncompletedExerciseId();
         if(nextUncompletedId && nextUncompletedId !== expandedExercise) {
             setExpandedExercise(nextUncompletedId);
@@ -209,8 +209,10 @@ export default function TrainingModePage() {
     const confirmCancelWorkout = () => { setActiveSession(null); navigateTo({ page: 'workouts' }); };
     
     return (
-        <div className="animate-fade-in pb-28">
-            {timerState.isRunning && <RestTimer duration={timerState.duration} isRunning={timerState.isRunning} onAdjust={(amount) => setTimerState(p => ({...p, duration: Math.max(0, p.duration + amount)}))} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
+        <>
+            {timerState.isRunning && <RestTimer duration={timerState.duration} isRunning={timerState.isRunning} onAdjust={(amount) => setTimerState(p => ({...p, duration: Math.max(0, Number(p.duration) + amount)}))} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
+
+            <div className="animate-fade-in pb-28">
             <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
             
             <h1 className="text-3xl font-bold text-white truncate mb-4">{workout.name}</h1>
@@ -237,6 +239,7 @@ export default function TrainingModePage() {
                     <span>Finalizar</span>
                 </button>
             </div>
-        </div>
+            </div>
+        </>
     );
 }
