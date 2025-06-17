@@ -234,9 +234,9 @@ export default function TrainingModePage() {
             {activeVideoUrl && <YouTubePlayerModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />}
             {activeImageUrl && <ImageModal url={activeImageUrl} onClose={() => setActiveImageUrl(null)} />}
             {substituteModalProps && <AddExerciseToWorkoutModal {...substituteModalProps} />}
+            <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
 
             <div className="animate-fade-in pb-28">
-            <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
             
             <h1 className="text-3xl font-bold text-white truncate mb-4">{workout.name}</h1>
             <div className="space-y-4">
