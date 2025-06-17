@@ -3,7 +3,7 @@ import { useAppContext } from '../../context/AppContext';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InputField } from '../../components/ui/InputField';
 // 👇 6. Adicionado o ícone Undo2 para a função de reverter
-import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown, Undo2 } from 'lucide-react';
+import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown, Undo2, Activity } from 'lucide-react';
 import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
 import ImageModal from '../../components/modals/ImageModal';
 import HistoryModal from '../../components/modals/HistoryModal';
@@ -99,6 +99,7 @@ function TrainingExerciseItem({
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
 
     const isCompleted = log.sets.length > 0 && log.sets.every(s => s.completed);
+    const isInProgress = log.sets.length > 0 && log.sets.some(s => s.completed) && !isCompleted;
     const isSubstituted = log.currentExerciseId !== log.originalExerciseId;
 
     const handleLogChange = (setIndex, field, value) => {
@@ -140,15 +141,22 @@ function TrainingExerciseItem({
     }
     
     return (
-        <div className={`bg-gray-800 rounded-xl shadow-lg relative transition-opacity ${isCompleted ? 'opacity-70' : ''}`}>
+        <div className="bg-gray-800 rounded-xl shadow-lg relative overflow-hidden">
             {/* 👇 3. Novo Overlay para exercício concluído */}
             {isCompleted && (
-            <div className="absolute bottom-3 right-3 bg-green-500 rounded-full p-1 z-10">
-                <CheckCircle size={20} className="text-white"/>
+            <div className="bg-green-500/20 px-4 h-7 flex items-center justify-center gap-2">
+                <CheckCircle size={16} className="text-green-400"/>
+                <span className="text-green-400 text-xs font-bold uppercase">Concluído</span>
             </div>
+        )}
+        {isInProgress && (
+                <div className="bg-yellow-500/20 px-4 h-7 flex items-center justify-center gap-2">
+                    <Activity size={16} className="text-yellow-400"/>
+                    <span className="text-yellow-400 text-xs font-bold uppercase tracking-wider">Em Andamento</span>
+                </div>
             )}
             {/* A opacidade agora é aplicada aqui, para não afetar o overlay */}
-            <div className={`p-4 transition-opacity duration-300 ${isCompleted ? 'opacity-40' : 'opacity-100'}`}>
+             <div className={`p-4 transition-opacity ${isCompleted ? 'opacity-60' : ''}`}>
                 <div className="flex gap-4 items-start">
                     <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={onShowImage}/>
                     <div className="flex-grow">
@@ -206,17 +214,21 @@ export default function TrainingModePage() {
     useEffect(() => {
             setTimeout(() => window.scrollTo(0, 0), 50); // 50ms é um delay seguro
 
-    const findNextActiveExerciseId = () => {
-        if (!workout || !activeSession) return null;
-        // Encontra o primeiro exercício que não está 100% completo
-        const nextExercise = workout.exercises.find(ex => {
-            const log = activeSession.logs[ex.workoutExerciseId];
-            return log && !log.sets.every(s => s.completed);
-        });
-        return nextExercise?.workoutExerciseId || null; // Retorna null se todos estiverem concluídos
-    };
+    // const findNextActiveExerciseId = () => {
+    //     if (!workout || !activeSession) return null;
+    //     // Encontra o primeiro exercício que não está 100% completo
+    //     const nextExercise = workout.exercises.find(ex => {
+    //         const log = activeSession.logs[ex.workoutExerciseId];
+    //         return log && !log.sets.every(s => s.completed);
+    //     });
+    //     return nextExercise?.workoutExerciseId || null; // Retorna null se todos estiverem concluídos
+    // };
 
-    setExpandedExercise(findNextActiveExerciseId());
+    //setExpandedExercise(findNextActiveExerciseId());
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
     }, [workout, activeSession]); // Depende do activeSession para reavaliar ao voltar para a tela
 
     
