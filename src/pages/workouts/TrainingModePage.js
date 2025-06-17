@@ -9,7 +9,7 @@ import HistoryModal from '../../components/modals/HistoryModal';
 import AddExerciseToWorkoutModal from '../../components/modals/AddExerciseToWorkoutModal';
 
 // Componente do Temporizador de Descanso
-function RestTimer({ duration, onFinish, onAdjust }) {
+function RestTimer({ duration, onFinish }) { // Removido o 'onAdjust' das props
     const [timeLeft, setTimeLeft] = useState(duration);
     const audioRef = useRef(null);
     const timerId = useRef(null);
@@ -23,6 +23,11 @@ function RestTimer({ duration, onFinish, onAdjust }) {
                 audioRef.current.play().catch(() => {});
             }
         };
+
+        // Limpa o timer anterior antes de criar um novo
+        if (timerId.current) {
+            clearInterval(timerId.current);
+        }
 
         timerId.current = setInterval(() => {
             setTimeLeft(prev => {
@@ -41,16 +46,21 @@ function RestTimer({ duration, onFinish, onAdjust }) {
 
     const progress = (timeLeft / duration) * 100;
 
+    // Nova função para ajustar o tempo restante
+    const handleAdjustTime = (amount) => {
+        setTimeLeft(prev => Math.max(0, prev + amount));
+    };
+
     return (
         <div className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur-sm p-4 z-50 text-white text-center border-b border-blue-500">
              <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c668156e15.mp3?filename=short-success-sound-glockenspiel-treasure-video-game-2-18634.mp3" preload="auto"></audio>
             <div className="flex justify-between items-center">
-                 <button onClick={() => onAdjust(-15)} className="text-lg font-mono p-2">-15s</button>
+                 <button onClick={() => handleAdjustTime(-15)} className="text-lg font-mono p-2">-15s</button>
                  <div>
                     <h3 className="font-bold text-lg">Descanso</h3>
                     <p className="text-5xl font-mono my-1">{timeLeft}s</p>
                  </div>
-                 <button onClick={() => onAdjust(15)} className="text-lg font-mono p-2">+15s</button>
+                 <button onClick={() => handleAdjustTime(15)} className="text-lg font-mono p-2">+15s</button>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
                 <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000 linear" style={{ width: `${progress}%` }}></div>
@@ -61,12 +71,11 @@ function RestTimer({ duration, onFinish, onAdjust }) {
 }
 
 // Componente para cada exercício na lista de treino
-function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete }) {
+function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete, onShowHistory }) {
     const { exercises, history, activeSession, setActiveSession } = useAppContext();
     const [isSubstituteModalOpen, setIsSubstituteModalOpen] = useState(false);
     const [videoModalUrl, setVideoModalUrl] = useState(null);
     const [imageModalUrl, setImageModalUrl] = useState(null);
-    const [historyModalExercise, setHistoryModalExercise] = useState(null);
 
     const fullExerciseDetails = exercises.find(e => e.id === log.currentExerciseId) || {};
     const originalExerciseDetails = exercises.find(e => e.id === log.originalExerciseId) || {};
@@ -128,7 +137,6 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
             }
             {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
             {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
-            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
             
             <div className="p-4">
                 <div className="flex gap-4 items-start">
@@ -140,7 +148,7 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                             {substitutes.length > 0 && <button onClick={() => setIsSubstituteModalOpen(true)} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
-                            {exerciseHasHistory(fullExerciseDetails.id) && <button onClick={() => setHistoryModalExercise(fullExerciseDetails)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={24}/></button>}
+                            {exerciseHasHistory(fullExerciseDetails.id) && <button onClick={onShowHistory} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={24}/></button>}
                             {fullExerciseDetails.videoUrl && <button onClick={() => setVideoModalUrl(fullExerciseDetails.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={24}/></button>}
                         </div>
                     </div>
@@ -168,7 +176,7 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
 }
 
 export default function TrainingModePage() {
-    const { workouts, setWorkouts, exercises, setHistory, activeSession, setActiveSession, navigateTo } = useAppContext();
+    const { workouts, setWorkouts, exercises, setHistory, activeSession, history, setActiveSession, navigateTo } = useAppContext();
     const workout = workouts.find(w => w.id === activeSession?.workoutId);
     
     const findFirstUncompletedExerciseId = useCallback(() => {
@@ -185,6 +193,8 @@ export default function TrainingModePage() {
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
+
+    const [historyModalExercise, setHistoryModalExercise] = useState(null)
 
     useEffect(() => {
         setExpandedExercise(findFirstUncompletedExerciseId());
@@ -210,7 +220,8 @@ export default function TrainingModePage() {
     
     return (
         <>
-            {timerState.isRunning && <RestTimer duration={timerState.duration} isRunning={timerState.isRunning} onAdjust={(amount) => setTimerState(p => ({...p, duration: Math.max(0, Number(p.duration) + amount)}))} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
+            {timerState.isRunning && <RestTimer duration={timerState.duration} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
+            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
 
             <div className="animate-fade-in pb-28">
             <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
@@ -226,6 +237,10 @@ export default function TrainingModePage() {
                         isExpanded={expandedExercise === ex.workoutExerciseId}
                         onToggleExpand={() => setExpandedExercise(prev => prev === ex.workoutExerciseId ? null : ex.workoutExerciseId)}
                         onSetComplete={handleSetComplete}
+                        onShowHistory={() => {
+                                const fullDetails = exercises.find(e => e.id === activeSession.logs[ex.workoutExerciseId].currentExerciseId);
+                                if (fullDetails) setHistoryModalExercise(fullDetails);
+                            }}
                     />
                 ))}
             </div>

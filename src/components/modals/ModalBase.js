@@ -10,7 +10,7 @@ export function ModalBase({ onClose, title, children }) {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-start justify-center p-4 pt-20 animate-fade-in-fast">
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fade-in-fast">
       <div
         className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg"
         role="dialog"
