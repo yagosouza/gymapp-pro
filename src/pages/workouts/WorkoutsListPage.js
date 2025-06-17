@@ -89,13 +89,17 @@ function WorkoutListItem({ workout, onEdit, onDeleteRequest, onStart }) {
 }
 
 export default function WorkoutsListPage() {
-    const { workouts, setWorkouts, navigateTo, startWorkoutSession } = useAppContext();
+    const { workouts, deleteWorkout, navigateTo, startWorkoutSession } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
 
-    const handleCreate = () => navigateTo({ page: 'workouts', mode: 'edit' });
-    const handleEdit = (workout) => navigateTo({ page: 'workouts', mode: 'edit', id: workout.id });
+    const handleCreate = () => 
+        navigateTo({ page: 'workouts', mode: 'edit' });
+    
+    const handleEdit = (workout) =>
+        navigateTo({ page: 'workouts', mode: 'edit', id: workout.id });
+    
     const handleDelete = (id) => { 
-        setWorkouts(workouts.filter(w => w.id !== id));
+        deleteWorkout(id);
         setItemToDelete(null); 
     };
     

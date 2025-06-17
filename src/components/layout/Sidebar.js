@@ -2,6 +2,8 @@ import React from 'react';
 import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers, User, LogOut, Repeat } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { APP_VERSION } from '../../constants/initialData';
+import { auth } from '../../firebase/config';
+import { signOut } from "firebase/auth";
 
 export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
     const { currentView, navigateTo, activeSession, workouts } = useAppContext();
@@ -29,6 +31,11 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
             setIsSidebarOpen(false);
         }
     }
+
+    const handleLogout = () => {
+      signOut(auth);
+      // O listener em App.js irá apanhar a mudança de estado e redirecionar
+    };
 
     return (
        <>
@@ -61,7 +68,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
             <p>Versão {APP_VERSION}</p>
           </footer>
           <div className="p-2">
-            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-lg hover:bg-red-800/50 text-red-400 transition-colors">
+            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-lg hover:bg-red-800/50 text-red-400 transition-colors">
                 <LogOut size={24}/>
                 <span>Sair</span>
             </button>

@@ -1,30 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoginPage } from './pages/auth/LoginPage';
 import GymApp from './components/GymApp';
 import { AppProvider } from './context/AppContext';
+import { auth } from './firebase/config'; // Importe o auth
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    
-    const handleLogin = (username, password) => {
-        if ((username === 'admin' && password === 'admin') || (username === '' && password === '')) {
-            setIsLoggedIn(true);
-        } else {
-            alert('Utilizador ou senha inválidos');
-        }
-    };
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const handleLogout = () => {
-        setIsLoggedIn(false); 
-    };
+    useEffect(() => {
+        // Ouve as mudanças de estado de autenticação
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
+            setLoading(false);
+        });
 
-    if (!isLoggedIn) {
-        return <LoginPage onLogin={handleLogin} />;
+        // Limpa o listener ao desmontar
+        return () => unsubscribe();
+    }, []);
+
+    if (loading) {
+        // Pode adicionar um componente de loading aqui
+        return <div>A carregar...</div>;
     }
 
+    if (!user) {
+        return <LoginPage />;
+    }
+
+    // Passamos o UID do utilizador para o AppProvider
     return (
-        <AppProvider>
-            <GymApp onLogout={handleLogout} />
-         </AppProvider>
+        <AppProvider userId={user.uid}>
+            <GymApp />
+        </AppProvider>
     );
 }

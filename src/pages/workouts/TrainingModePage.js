@@ -197,11 +197,9 @@ function TrainingExerciseItem({
 }
 
 export default function TrainingModePage() {
-    const { workouts, setWorkouts, exercises, setHistory, activeSession, history, setActiveSession, navigateTo } = useAppContext();
+    const { workouts, exercises, activeSession, history, setActiveSession, navigateTo, historyAPI, workoutsAPI } = useAppContext();
     const workout = workouts.find(w => w.id === activeSession?.workoutId);
     
-    // 👇 2. A função 'findFirstUncompletedExerciseId' não é mais necessária e foi removida.
-
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
@@ -260,12 +258,39 @@ export default function TrainingModePage() {
         }
     };
     
-    const finishWorkout = () => {
-        const newHistoryEntry = { id: Date.now(), workoutId: workout.id, workoutName: workout.name, completionDate: new Date().toISOString(), exerciseLogs: Object.values(activeSession.logs).map(log => ({ exerciseId: log.currentExerciseId, name: (exercises.find(e=>e.id === log.currentExerciseId) || {}).name, sets: log.sets.length, reps: log.sets[0]?.reps || 0, weight: log.sets[0]?.weight || 0 })) };
-        setHistory(prev => [...prev, newHistoryEntry]);
-        setWorkouts(prev => prev.map(w => w.id === workout.id ? { ...w, lastCompleted: new Date().toISOString() } : w));
-        setActiveSession(null); 
-        navigateTo({ page: 'workouts' });
+    const finishWorkout = async () => {
+        const completionDate = new Date().toISOString();
+        
+        // Prepara o objeto para o histórico
+        const newHistoryEntry = { 
+            id: Date.now().toString(), // Adicionado para consistência, embora o Firestore crie o seu próprio
+            workoutId: workout.id, 
+            workoutName: workout.name, 
+            completionDate: completionDate, 
+            exerciseLogs: Object.values(activeSession.logs).map(log => ({ 
+                exerciseId: log.currentExerciseId, 
+                name: (exercises.find(e => e.id === log.currentExerciseId) || {}).name, 
+                sets: log.sets.length, 
+                reps: log.sets[0]?.reps || 0, 
+                weight: log.sets[0]?.weight || 0 
+            })) 
+        };
+
+        try {
+            // CREATE: Adiciona a entrada ao histórico no Firestore
+            await historyAPI.create(newHistoryEntry);
+            
+            // UPDATE: Atualiza o campo 'lastCompleted' do treino atual
+            await workoutsAPI.update(workout.id, { lastCompleted: completionDate });
+
+            // Limpa a sessão ativa e navega para a lista de treinos
+            setActiveSession(null); 
+            navigateTo({ page: 'workouts' });
+
+        } catch (error) {
+            console.error("Erro ao finalizar o treino:", error);
+            alert("Ocorreu um erro ao salvar o seu progresso. Tente novamente.");
+        }
     };
 
     const confirmCancelWorkout = () => { setActiveSession(null); navigateTo({ page: 'workouts' }); };

@@ -7,7 +7,7 @@ import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
 import ImageModal from '../../components/modals/ImageModal';
 
 export function ExerciseFormPage() {
-    const { exercises, setExercises, muscleGroups, currentView, navigateTo } = useAppContext();
+    const { exercises, currentView, navigateTo, muscleGroups, exercisesAPI } = useAppContext();
     const exercise = currentView.mode === 'edit' ? exercises.find(ex => ex.id === currentView.id) : null;
     
     const [formState, setFormState] = useState(
@@ -30,19 +30,24 @@ export function ExerciseFormPage() {
         setFormState({ ...formState, secondaryMuscleGroupIds: newIds });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formState.name.trim() || !formState.muscleGroupId) { 
-            alert('Nome e Grupo Muscular Principal são obrigatórios.'); 
-            return; 
-        }
+        // ... (validação existente) ...
         const finalFormState = { ...formState, muscleGroupId: parseInt(formState.muscleGroupId, 10) || null };
-        if (exercise) { 
-            setExercises(exercises.map(ex => ex.id === exercise.id ? finalFormState : ex));
-        } else { 
-            setExercises([...exercises, { ...finalFormState, id: Date.now() }]); 
+
+        try {
+            if (exercise) {
+                // UPDATE
+                await exercisesAPI.update(exercise.id, finalFormState);
+            } else {
+                // CREATE
+                await exercisesAPI.create(finalFormState);
+            }
+            navigateTo({ page: 'exercises' });
+        } catch (error) {
+            console.error("Erro ao salvar exercício: ", error);
+            alert("Não foi possível salvar. Tente novamente.");
         }
-        navigateTo({ page: 'exercises' });
     };
 
     const onCancel = () => {

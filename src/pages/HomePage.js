@@ -7,7 +7,9 @@ export function HomePage() {
     const { workouts, exercises, profile, history, navigateTo } = useAppContext();
     
     const lastWorkout = workouts.filter(w => w.lastCompleted).sort((a,b) => new Date(b.lastCompleted) - new Date(a.lastCompleted))[0];
-    const latestRecord = profile.measurementHistory.slice(-1)[0] || {};
+    const latestRecord = (profile && profile.measurementHistory && profile.measurementHistory.length > 0)
+        ? profile.measurementHistory.slice(-1)[0]
+        : {};
     const bmi = calculateBMI(latestRecord.weight, profile.height);
     const bodyFat = calculateBodyFat(latestRecord, profile.age, profile.gender);
 

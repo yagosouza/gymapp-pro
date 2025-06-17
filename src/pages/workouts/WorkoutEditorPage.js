@@ -97,7 +97,7 @@ function WorkoutExerciseItem({ exercise, onUpdate, onDeleteRequest, onEditSubsti
 }
 
 export default function WorkoutEditorPage() {
-    const { workouts, setWorkouts, exercises, currentView, navigateTo } = useAppContext();
+    const { workouts, exercises, currentView, navigateTo, workoutsAPI } = useAppContext();
     const workout = currentView.id ? workouts.find(w => w.id === currentView.id) : { name: 'Novo Treino', exercises: [] };
     
     const [editedWorkout, setEditedWorkout] = useState(workout);
@@ -132,15 +132,20 @@ export default function WorkoutEditorPage() {
         setExerciseToRemove(null);
     };
 
-    const onSave = () => {
-        console.log('[DEBUG-1] Objeto do treino pronto para salvar:', editedWorkout); 
-
-        if (currentView.id) { 
-            setWorkouts(workouts.map(w => w.id === currentView.id ? editedWorkout : w));
-        } else { 
-            setWorkouts([...workouts, {...editedWorkout, id: Date.now()}]); 
+    const onSave = async () => {
+        try {
+            if (currentView.id) { 
+                // UPDATE
+                await workoutsAPI.update(currentView.id, editedWorkout);
+            } else { 
+                // CREATE
+                await workoutsAPI.create({ ...editedWorkout, createdAt: new Date().toISOString() });
+            }
+            navigateTo({ page: 'workouts' });
+        } catch(error) {
+            console.error("Erro ao salvar treino: ", error);
+            alert("Não foi possível salvar o treino.");
         }
-        navigateTo({ page: 'workouts' });
     };
 
     const onCancel = () => {

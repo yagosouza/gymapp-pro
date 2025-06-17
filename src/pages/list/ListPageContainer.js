@@ -90,7 +90,7 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest, onShowVideo, onShow
 }
 
 export default function ListPageContainer({ pageTitle, itemType }) {
-    const { exercises, setExercises, muscleGroups, setMuscleGroups, history, navigateTo } = useAppContext();
+    const { exercises, exercisesAPI, muscleGroupsAPI, muscleGroups, history, navigateTo } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [primaryFilterGroup, setPrimaryFilterGroup] = useState('');
@@ -101,14 +101,14 @@ export default function ListPageContainer({ pageTitle, itemType }) {
     const [historyModalExercise, setHistoryModalExercise] = useState(null);
     
     const items = itemType === 'exercises' ? exercises : muscleGroups;
-    const setItems = itemType === 'exercises' ? setExercises : setMuscleGroups;
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (itemType === 'groups') {
-            const isGroupInUse = exercises.some(ex => ex.muscleGroupId === id || (ex.secondaryMuscleGroupIds && ex.secondaryMuscleGroupIds.includes(id)));
-            if (isGroupInUse) { alert('Este grupo muscular está a ser usado em exercícios e não pode ser excluído.'); return; }
+            // ... (lógica de verificação existente) ...
+            await muscleGroupsAPI.delete(id);
+        } else {
+            await exercisesAPI.delete(id);
         }
-        setItems(prevItems => prevItems.filter(item => item.id !== id));
         setItemToDelete(null);
     };
 

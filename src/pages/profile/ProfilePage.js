@@ -8,7 +8,7 @@ import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InfoModal } from '../../components/modals/InfoModal';
 
 export function ProfilePage() {
-    const { profile, setProfile } = useAppContext();
+    const { profile, updateProfileAPI } = useAppContext();
     const [isEditing, setIsEditing] = useState(false);
     const [isAddingRecord, setIsAddingRecord] = useState(false);
     const [isHistoryVisible, setIsHistoryVisible] = useState(false); // Histórico começa fechado
@@ -28,7 +28,15 @@ export function ProfilePage() {
     
     const handleProfileChange = (e) => setEditableProfile({...editableProfile, [e.target.name]: e.target.value});
     const handleRecordChange = (e) => setNewRecord({...newRecord, [e.target.name]: e.target.value});
-    const saveProfileInfo = () => { setProfile(p => ({ ...p, ...editableProfile })); setIsEditing(false); };
+    const saveProfileInfo = async () => {
+        try {
+            await updateProfileAPI(editableProfile);
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Erro ao atualizar perfil:", error);
+            alert("Não foi possível atualizar o perfil.");
+        }
+    };
 
     const addFullRecord = () => {
         const today = new Date().toISOString().slice(0, 10);
@@ -42,16 +50,28 @@ export function ProfilePage() {
             return; 
         }
         
-        setProfile(p => ({ ...p, measurementHistory: [...p.measurementHistory, newRecord]}));
-        setNewRecord({...initialMeasures, date: new Date().toISOString().slice(0, 10)});
-        setIsAddingRecord(false);
-        alert("Registo guardado com sucesso!");
+        const updatedHistory = [...profile.measurementHistory, newRecord];
+        try {
+            updateProfileAPI({ measurementHistory: updatedHistory });
+            setNewRecord({...initialMeasures, date: new Date().toISOString().slice(0, 10)});
+            setIsAddingRecord(false);
+            alert("Registo guardado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao adicionar registo:", error);
+            alert("Não foi possível adicionar o registo.");
+        }
     };
     
-    const handleDeleteRecord = (date) => {
-        setProfile(p => ({ ...p, measurementHistory: p.measurementHistory.filter(record => record.date !== date) }));
-        setRecordToDelete(null);
-    }
+    const handleDeleteRecord = async (date) => {
+        const updatedHistory = profile.measurementHistory.filter(record => record.date !== date);
+        try {
+            await updateProfileAPI({ measurementHistory: updatedHistory });
+            setRecordToDelete(null);
+        } catch (error) {
+            console.error("Erro ao apagar registo:", error);
+            alert("Não foi possível apagar o registo.");
+        }
+    };
     
     const sortedHistory = [...profile.measurementHistory].sort((a,b) => new Date(b.date) - new Date(a.date));
     const latestRecord = sortedHistory[0] || {};
