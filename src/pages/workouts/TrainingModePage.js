@@ -71,16 +71,21 @@ function RestTimer({ duration, onFinish }) { // Removido o 'onAdjust' das props
 }
 
 // Componente para cada exercício na lista de treino
-function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete, onShowHistory }) {
+function TrainingExerciseItem({ 
+    workoutExercise, 
+    workoutExerciseId, 
+    log, 
+    isExpanded, 
+    onToggleExpand, 
+    onSetComplete, 
+    onShowHistory, 
+    onShowVideo, 
+    onShowImage, 
+    onShowSubstitutes 
+}) {
     const { exercises, history, activeSession, setActiveSession } = useAppContext();
-    const [isSubstituteModalOpen, setIsSubstituteModalOpen] = useState(false);
-    const [videoModalUrl, setVideoModalUrl] = useState(null);
-    const [imageModalUrl, setImageModalUrl] = useState(null);
 
     const fullExerciseDetails = exercises.find(e => e.id === log.currentExerciseId) || {};
-    const originalExerciseDetails = exercises.find(e => e.id === log.originalExerciseId) || {};
-    const substitutes = (workoutExercise.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
-
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
 
     const handleLogChange = (setIndex, field, value) => {
@@ -115,41 +120,20 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
         setActiveSession(prev => ({...prev, logs: newLogs}));
     };
     
-    const handleSubstitute = (selectedIds) => {
-        if (!selectedIds || selectedIds.length === 0) return;
-        const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...log, currentExerciseId: selectedIds[0] } };
-        setActiveSession(prev => ({...prev, logs: newLogs}));
-        setIsSubstituteModalOpen(false);
-    }
-    
     return (
-        <div className={`bg-gray-800 rounded-xl shadow-lg transition-all duration-300 ${log.sets.every(s => s.completed) ? 'opacity-50' : ''}`}>
-            {isSubstituteModalOpen && 
-                <AddExerciseToWorkoutModal 
-                    // Nova prop para limitar a lista de exercícios exibidos
-                    onAdd={handleSubstitute} 
-                    onClose={() => setIsSubstituteModalOpen(false)} 
-                    title={`Substituir ${originalExerciseDetails.name}`}
-                    // Nova prop para garantir que apenas um substituto seja escolhido
-                    isSingleSelection={true} 
-                    allowedIds={substitutes.map(s => s.id)}
-                />
-            }
-            {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
-            {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
-            
+        <div className={`bg-gray-800 rounded-xl shadow-lg transition-all duration-300 ${log.sets.every(s => s.completed) ? 'opacity-50' : ''}`}>            
             <div className="p-4">
                 <div className="flex gap-4 items-start">
-                    <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={() => fullExerciseDetails.imageUrl && setImageModalUrl(fullExerciseDetails.imageUrl)}/>
+                    <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={onShowImage}/>
                     <div className="flex-grow">
                         <div className="flex justify-between items-center cursor-pointer" onClick={onToggleExpand}>
                             <h3 className="text-xl font-bold text-white">{fullExerciseDetails.name}</h3>
                              <ChevronDown size={28} className={`transition-transform text-blue-400 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                            {substitutes.length > 0 && <button onClick={() => setIsSubstituteModalOpen(true)} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
+                            {(workoutExercise.substituteIds || []).length > 0 && <button onClick={onShowSubstitutes} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
                             {exerciseHasHistory(fullExerciseDetails.id) && <button onClick={onShowHistory} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={24}/></button>}
-                            {fullExerciseDetails.videoUrl && <button onClick={() => setVideoModalUrl(fullExerciseDetails.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={24}/></button>}
+                            {fullExerciseDetails.videoUrl && <button onClick={onShowVideo} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={24}/></button>}
                         </div>
                     </div>
                 </div>
@@ -195,6 +179,9 @@ export default function TrainingModePage() {
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
 
     const [historyModalExercise, setHistoryModalExercise] = useState(null)
+    const [activeVideoUrl, setActiveVideoUrl] = useState(null);
+    const [activeImageUrl, setActiveImageUrl] = useState(null);
+    const [substituteModalInfo, setSubstituteModalInfo] = useState(null); // Para o modal de substituição
 
     useEffect(() => {
         setExpandedExercise(findFirstUncompletedExerciseId());
@@ -218,31 +205,61 @@ export default function TrainingModePage() {
 
     const confirmCancelWorkout = () => { setActiveSession(null); navigateTo({ page: 'workouts' }); };
     
+    const handleSubstitute = (selectedIds) => {
+        if (!selectedIds || selectedIds.length === 0 || !substituteModalInfo) return;
+        const workoutExerciseId = substituteModalInfo.workoutExerciseId;
+        const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...activeSession.logs[workoutExerciseId], currentExerciseId: selectedIds[0] } };
+        setActiveSession(prev => ({...prev, logs: newLogs}));
+        setSubstituteModalInfo(null); // Fecha o modal
+    }
+
+    let substituteModalProps = null;
+    if (substituteModalInfo) {
+        const { workoutExercise } = substituteModalInfo;
+        const originalExerciseDetails = exercises.find(e => e.id === workoutExercise.originalExerciseId) || {};
+        const substitutes = (workoutExercise.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
+        substituteModalProps = {
+            onAdd: handleSubstitute,
+            onClose: () => setSubstituteModalInfo(null),
+            title: `Substituir ${originalExerciseDetails.name}`,
+            isSingleSelection: true,
+            allowedIds: substitutes.map(s => s.id)
+        }
+    }
+
     return (
         <>
             {timerState.isRunning && <RestTimer duration={timerState.duration} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
             {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
+            {activeVideoUrl && <YouTubePlayerModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />}
+            {activeImageUrl && <ImageModal url={activeImageUrl} onClose={() => setActiveImageUrl(null)} />}
+            {substituteModalProps && <AddExerciseToWorkoutModal {...substituteModalProps} />}
 
             <div className="animate-fade-in pb-28">
             <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
             
             <h1 className="text-3xl font-bold text-white truncate mb-4">{workout.name}</h1>
             <div className="space-y-4">
-                {workout.exercises.map(ex => (
-                    <TrainingExerciseItem 
-                        key={ex.workoutExerciseId} 
-                        workoutExercise={ex}
-                        workoutExerciseId={ex.workoutExerciseId} 
-                        log={activeSession.logs[ex.workoutExerciseId]} 
-                        isExpanded={expandedExercise === ex.workoutExerciseId}
-                        onToggleExpand={() => setExpandedExercise(prev => prev === ex.workoutExerciseId ? null : ex.workoutExerciseId)}
-                        onSetComplete={handleSetComplete}
-                        onShowHistory={() => {
-                                const fullDetails = exercises.find(e => e.id === activeSession.logs[ex.workoutExerciseId].currentExerciseId);
-                                if (fullDetails) setHistoryModalExercise(fullDetails);
-                            }}
+                {workout.exercises.map(ex => {
+                    const log = activeSession.logs[ex.workoutExerciseId];
+                    const fullDetails = exercises.find(e => e.id === log.currentExerciseId);
+
+                    return (
+                        <TrainingExerciseItem
+                            key={ex.workoutExerciseId}
+                            workoutExercise={ex}
+                            workoutExerciseId={ex.workoutExerciseId}
+                            log={activeSession.logs[ex.workoutExerciseId]}
+                            isExpanded={expandedExercise === ex.workoutExerciseId}
+                            onToggleExpand={() => setExpandedExercise(prev => prev === ex.workoutExerciseId ? null : ex.workoutExerciseId)}
+                            onSetComplete={handleSetComplete}
+                            onShowHistory={() => setHistoryModalExercise(fullDetails)}
+                            onShowImage={() => fullDetails?.imageUrl && setActiveImageUrl(fullDetails.imageUrl)}
+                            onShowVideo={() => fullDetails?.videoUrl && setActiveVideoUrl(fullDetails.videoUrl)}
+                            onShowSubstitutes={() => setSubstituteModalInfo({ workoutExerciseId: ex.workoutExerciseId, workoutExercise: ex })}
                     />
-                ))}
+                ); 
+                })}
             </div>
              <div className="mt-8 grid grid-cols-2 gap-4">
                  <button onClick={() => setIsCancelModalOpen(true)} className="w-full flex items-center justify-center gap-2 text-blue-400 font-semibold py-3 px-5 rounded-lg border-2 border-blue-600 bg-transparent hover:bg-blue-600/20 transition-colors">
