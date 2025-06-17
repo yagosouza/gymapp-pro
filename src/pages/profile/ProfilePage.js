@@ -80,10 +80,11 @@ export function ProfilePage() {
     const measuresToShow = historyTab === 'circumferences' ? { weight: 'Peso (kg)', ...circumferenceLabels } : skinfoldLabels;
 
     return (
-        <div className="animate-fade-in">
-            <InfoModal isOpen={!!infoModalContent} onClose={() => setInfoModalContent(null)} title={infoModalContent?.title}><p>{infoModalContent?.content}</p></InfoModal>
+        <>  
+        <InfoModal isOpen={!!infoModalContent} onClose={() => setInfoModalContent(null)} title={infoModalContent?.title}><p>{infoModalContent?.content}</p></InfoModal>
             <ConfirmationModal isOpen={!!recordToDelete} onClose={() => setRecordToDelete(null)} onConfirm={() => handleDeleteRecord(recordToDelete)} title="Apagar Registo"><p>Tem a certeza que quer apagar este registo? Esta ação não pode ser desfeita.</p></ConfirmationModal>
             
+        <div className="animate-fade-in">   
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
                 <div className="flex justify-between items-center mb-4"><h2 className="text-2xl font-semibold text-blue-400">Informações Pessoais</h2>{isEditing ? <button onClick={saveProfileInfo} className="btn-primary"><Save size={18}/> Salvar</button> : <button onClick={() => setIsEditing(true)} className="btn-secondary"><Edit size={18}/> Editar</button>}</div>
                  {isEditing ? (
@@ -168,5 +169,6 @@ export function ProfilePage() {
                 )}
             </div>
         </div>
+        </>
     );
 }

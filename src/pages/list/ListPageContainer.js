@@ -7,15 +7,12 @@ import ImageModal from '../../components/modals/ImageModal';
 import HistoryModal from '../../components/modals/HistoryModal';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 
-function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
+function ListItem({ item, itemType, onEdit, onDeleteRequest, onShowVideo, onShowImage, onShowHistory }) {
     const { muscleGroups, history } = useAppContext();
     const [translateX, setTranslateX] = useState(0);
     const touchStartX = useRef(0);
     const itemRef = useRef(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
-    const [videoModalUrl, setVideoModalUrl] = useState(null);
-    const [imageModalUrl, setImageModalUrl] = useState(null);
-    const [historyModalExercise, setHistoryModalExercise] = useState(null);
 
     useEffect(() => {
         setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -48,10 +45,6 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
 
     return (
         <>
-            {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
-            {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
-            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
-        
             <div className="relative overflow-hidden rounded-lg">
                 {isTouchDevice && (
                     <div className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-600 text-white px-6" style={{ width: `${Math.abs(translateX)}px` }}>
@@ -72,7 +65,7 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
                             src={item.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'}
                             alt={item.name}
                             className="w-20 h-20 rounded-md object-cover flex-shrink-0 cursor-pointer"
-                            onClick={(e) => { e.stopPropagation(); if (item.imageUrl) setImageModalUrl(item.imageUrl); }}
+                            onClick={(e) => { e.stopPropagation(); onShowImage(); }}
                             onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'; }}
                         />
                     )}
@@ -87,8 +80,8 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
                     </div>
                     <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         {!isTouchDevice && (<button onClick={onDeleteRequest} className="btn-icon text-gray-400 hover:text-red-500"><Trash2 size={24}/></button>)}
-                        {itemType === 'exercises' && exerciseHasHistory(item.id) && <button onClick={() => setHistoryModalExercise(item)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={28} /></button>}
-                        {itemType === 'exercises' && item.videoUrl && <button onClick={() => setVideoModalUrl(item.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={28} /></button>}
+                        {itemType === 'exercises' && exerciseHasHistory(item.id) && <button onClick={onShowHistory} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={28} /></button>}
+                        {itemType === 'exercises' && item.videoUrl && <button onClick={onShowVideo} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={28} /></button>}
                     </div>
                 </div>
             </div>
@@ -97,11 +90,15 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest }) {
 }
 
 export default function ListPageContainer({ pageTitle, itemType }) {
-    const { exercises, setExercises, muscleGroups, setMuscleGroups, navigateTo } = useAppContext();
+    const { exercises, setExercises, muscleGroups, setMuscleGroups, history, navigateTo } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [primaryFilterGroup, setPrimaryFilterGroup] = useState('');
     const [secondaryFilterGroup, setSecondaryFilterGroup] = useState('');
+
+    const [videoModalUrl, setVideoModalUrl] = useState(null);
+    const [imageModalUrl, setImageModalUrl] = useState(null);
+    const [historyModalExercise, setHistoryModalExercise] = useState(null);
     
     const items = itemType === 'exercises' ? exercises : muscleGroups;
     const setItems = itemType === 'exercises' ? setExercises : setMuscleGroups;
@@ -134,9 +131,13 @@ export default function ListPageContainer({ pageTitle, itemType }) {
     });
 
     return (
+        <>
+        <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={() => handleDelete(itemToDelete)} title={`Apagar ${itemType === 'exercises' ? 'Exercício' : 'Grupo'}`}><p>Tem a certeza? Esta ação não pode ser desfeita.</p></ConfirmationModal>
+            {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
+            {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
+            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
+
         <div className="animate-fade-in h-full flex flex-col">
-            <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={() => handleDelete(itemToDelete)} title={`Apagar ${itemType === 'exercises' ? 'Exercício' : 'Grupo'}`}><p>Tem a certeza? Esta ação não pode ser desfeita.</p></ConfirmationModal>
-            
             <div className="flex-shrink-0">
                 <div className="relative mb-4"><Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/><input type="text" placeholder="Buscar por nome ou grupo muscular..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-3 pl-10 input-base"/></div>
                 
@@ -160,10 +161,14 @@ export default function ListPageContainer({ pageTitle, itemType }) {
                         itemType={itemType}
                         onEdit={() => navigateTo({ page: itemType, mode: 'edit', id: item.id })}
                         onDeleteRequest={() => setItemToDelete(item.id)}
+                        onShowVideo={() => item.videoUrl && setVideoModalUrl(item.videoUrl)}
+                        onShowImage={() => item.imageUrl && setImageModalUrl(item.imageUrl)}
+                        onShowHistory={() => setHistoryModalExercise(item)}
                     />
                 ))}
             </div>
         </div>
+        </>
     );
 }
 
