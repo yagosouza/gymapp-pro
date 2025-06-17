@@ -50,10 +50,10 @@ export function ExerciseFormPage() {
     }
 
     return (
-        <div className="animate-fade-in pb-20">
-            {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
+        <>
+        {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
             {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
-
+        <div className="animate-fade-in pb-20">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="bg-gray-800 p-6 rounded-xl space-y-4">
                     <InputField label="Nome do Exercício" name="name" value={formState.name} onChange={handleInputChange} required />
@@ -127,6 +127,7 @@ export function ExerciseFormPage() {
                 </div>
             </form>
         </div>
+        </>  
     );
 }
 

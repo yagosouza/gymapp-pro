@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InputField } from '../../components/ui/InputField';
-import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown } from 'lucide-react';
+// 👇 6. Adicionado o ícone Undo2 para a função de reverter
+import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown, Undo2, Activity } from 'lucide-react';
 import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
 import ImageModal from '../../components/modals/ImageModal';
 import HistoryModal from '../../components/modals/HistoryModal';
 import AddExerciseToWorkoutModal from '../../components/modals/AddExerciseToWorkoutModal';
 
-// Componente do Temporizador de Descanso
-function RestTimer({ duration, onFinish, onAdjust }) {
+// Componente do Temporizador de Descanso (VERSÃO MELHORADA)
+function RestTimer({ duration, onFinish }) {
     const [timeLeft, setTimeLeft] = useState(duration);
     const audioRef = useRef(null);
     const timerId = useRef(null);
@@ -17,19 +18,23 @@ function RestTimer({ duration, onFinish, onAdjust }) {
     useEffect(() => {
         setTimeLeft(duration);
         
-        const playSound = () => {
+        const playSoundAndNotify = () => {
             if(audioRef.current) {
                 audioRef.current.currentTime = 0;
                 audioRef.current.play().catch(() => {});
             }
+            onFinish(); // Chama a função do pai que dispara notificação e vibração
         };
+
+        if (timerId.current) {
+            clearInterval(timerId.current);
+        }
 
         timerId.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerId.current);
-                    playSound();
-                    onFinish();
+                    playSoundAndNotify();
                     return 0;
                 }
                 return prev - 1;
@@ -39,18 +44,33 @@ function RestTimer({ duration, onFinish, onAdjust }) {
         return () => clearInterval(timerId.current);
     }, [duration, onFinish]);
 
+    const handleAdjustTime = (amount) => {
+        setTimeLeft(prev => Math.max(0, prev + amount));
+    };
+
     const progress = (timeLeft / duration) * 100;
+    
+    // 👇 4. Estilo para respeitar a safe area em telas edge-to-edge
+    const safeAreaStyles = {
+        paddingTop: `calc(1rem + env(safe-area-inset-top))`,
+        paddingLeft: `calc(1rem + env(safe-area-inset-left))`,
+        paddingRight: `calc(1rem + env(safe-area-inset-right))`,
+        paddingBottom: '1rem'
+    };
 
     return (
-        <div className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur-sm p-4 z-50 text-white text-center border-b border-blue-500">
+        <div 
+            className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur-sm z-50 text-white text-center border-b border-blue-500"
+            style={safeAreaStyles} // Aplicando o estilo da safe area
+        >
              <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c668156e15.mp3?filename=short-success-sound-glockenspiel-treasure-video-game-2-18634.mp3" preload="auto"></audio>
             <div className="flex justify-between items-center">
-                 <button onClick={() => onAdjust(-15)} className="text-lg font-mono p-2">-15s</button>
+                 <button onClick={() => handleAdjustTime(-15)} className="text-lg font-mono p-2">-15s</button>
                  <div>
                     <h3 className="font-bold text-lg">Descanso</h3>
                     <p className="text-5xl font-mono my-1">{timeLeft}s</p>
                  </div>
-                 <button onClick={() => onAdjust(15)} className="text-lg font-mono p-2">+15s</button>
+                 <button onClick={() => handleAdjustTime(15)} className="text-lg font-mono p-2">+15s</button>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
                 <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-1000 linear" style={{ width: `${progress}%` }}></div>
@@ -60,19 +80,27 @@ function RestTimer({ duration, onFinish, onAdjust }) {
     );
 }
 
-// Componente para cada exercício na lista de treino
-function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete }) {
+// Componente para cada exercício na lista de treino (VERSÃO MELHORADA)
+function TrainingExerciseItem({ 
+    workoutExercise, 
+    workoutExerciseId, 
+    log, 
+    isExpanded, 
+    onToggleExpand, 
+    onSetComplete, 
+    onShowHistory, 
+    onShowVideo, 
+    onShowImage, 
+    onShowSubstitutes 
+}) {
     const { exercises, history, activeSession, setActiveSession } = useAppContext();
-    const [isSubstituteModalOpen, setIsSubstituteModalOpen] = useState(false);
-    const [videoModalUrl, setVideoModalUrl] = useState(null);
-    const [imageModalUrl, setImageModalUrl] = useState(null);
-    const [historyModalExercise, setHistoryModalExercise] = useState(null);
 
     const fullExerciseDetails = exercises.find(e => e.id === log.currentExerciseId) || {};
-    const originalExerciseDetails = exercises.find(e => e.id === log.originalExerciseId) || {};
-    const substitutes = (workoutExercise.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
-
     const exerciseHasHistory = (exId) => history.some(h => h.exerciseLogs.some(l => l.exerciseId === exId));
+
+    const isCompleted = log.sets.length > 0 && log.sets.every(s => s.completed);
+    const isInProgress = log.sets.length > 0 && log.sets.some(s => s.completed) && !isCompleted;
+    const isSubstituted = log.currentExerciseId !== log.originalExerciseId;
 
     const handleLogChange = (setIndex, field, value) => {
         const newSets = [...log.sets];
@@ -105,43 +133,44 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
         const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...log, sets: newSets } };
         setActiveSession(prev => ({...prev, logs: newLogs}));
     };
-    
-    const handleSubstitute = (selectedIds) => {
-        if (!selectedIds || selectedIds.length === 0) return;
-        const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...log, currentExerciseId: selectedIds[0] } };
+
+    // 👇 6. Nova função para reverter a substituição
+    const handleRevertSubstitution = () => {
+        const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...log, currentExerciseId: log.originalExerciseId } };
         setActiveSession(prev => ({...prev, logs: newLogs}));
-        setIsSubstituteModalOpen(false);
     }
     
     return (
-        <div className={`bg-gray-800 rounded-xl shadow-lg transition-all duration-300 ${log.sets.every(s => s.completed) ? 'opacity-50' : ''}`}>
-            {isSubstituteModalOpen && 
-                <AddExerciseToWorkoutModal 
-                    // Nova prop para limitar a lista de exercícios exibidos
-                    onAdd={handleSubstitute} 
-                    onClose={() => setIsSubstituteModalOpen(false)} 
-                    title={`Substituir ${originalExerciseDetails.name}`}
-                    // Nova prop para garantir que apenas um substituto seja escolhido
-                    isSingleSelection={true} 
-                    allowedIds={substitutes.map(s => s.id)}
-                />
-            }
-            {videoModalUrl && <YouTubePlayerModal url={videoModalUrl} onClose={() => setVideoModalUrl(null)} />}
-            {imageModalUrl && <ImageModal url={imageModalUrl} onClose={() => setImageModalUrl(null)} />}
-            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
-            
-            <div className="p-4">
+        <div className="bg-gray-800 rounded-xl shadow-lg relative overflow-hidden">
+            {/* 👇 3. Novo Overlay para exercício concluído */}
+            {isCompleted && (
+            <div className="bg-green-500/20 px-4 h-7 flex items-center justify-center gap-2">
+                <CheckCircle size={16} className="text-green-400"/>
+                <span className="text-green-400 text-xs font-bold uppercase">Concluído</span>
+            </div>
+        )}
+        {isInProgress && (
+                <div className="bg-yellow-500/20 px-4 h-7 flex items-center justify-center gap-2">
+                    <Activity size={16} className="text-yellow-400"/>
+                    <span className="text-yellow-400 text-xs font-bold uppercase tracking-wider">Em Andamento</span>
+                </div>
+            )}
+            {/* A opacidade agora é aplicada aqui, para não afetar o overlay */}
+             <div className={`p-4 transition-opacity ${isCompleted ? 'opacity-60' : ''}`}>
                 <div className="flex gap-4 items-start">
-                    <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={() => fullExerciseDetails.imageUrl && setImageModalUrl(fullExerciseDetails.imageUrl)}/>
+                    <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={onShowImage}/>
                     <div className="flex-grow">
                         <div className="flex justify-between items-center cursor-pointer" onClick={onToggleExpand}>
                             <h3 className="text-xl font-bold text-white">{fullExerciseDetails.name}</h3>
                              <ChevronDown size={28} className={`transition-transform text-blue-400 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                            {substitutes.length > 0 && <button onClick={() => setIsSubstituteModalOpen(true)} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
-                            {exerciseHasHistory(fullExerciseDetails.id) && <button onClick={() => setHistoryModalExercise(fullExerciseDetails)} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={24}/></button>}
-                            {fullExerciseDetails.videoUrl && <button onClick={() => setVideoModalUrl(fullExerciseDetails.videoUrl)} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={24}/></button>}
+                             {/* 👇 6. Botão de Reverter aparece se o exercício foi substituído */}
+                            {isSubstituted && <button onClick={handleRevertSubstitution} className="btn-icon text-gray-400 hover:text-yellow-400" title="Reverter para o original"><Undo2 size={24}/></button>}
+                            
+                            {(workoutExercise.substituteIds || []).length > 0 && <button onClick={onShowSubstitutes} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
+                            {exerciseHasHistory(fullExerciseDetails.id) && <button onClick={onShowHistory} className="btn-icon text-gray-400 hover:text-green-400"><TrendingUp size={24}/></button>}
+                            {fullExerciseDetails.videoUrl && <button onClick={onShowVideo} className="btn-icon text-gray-400 hover:text-red-500"><Youtube size={24}/></button>}
                         </div>
                     </div>
                 </div>
@@ -168,33 +197,66 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
 }
 
 export default function TrainingModePage() {
-    const { workouts, setWorkouts, exercises, setHistory, activeSession, setActiveSession, navigateTo } = useAppContext();
+    const { workouts, setWorkouts, exercises, setHistory, activeSession, history, setActiveSession, navigateTo } = useAppContext();
     const workout = workouts.find(w => w.id === activeSession?.workoutId);
     
-    const findFirstUncompletedExerciseId = useCallback(() => {
-        if (!workout || !activeSession) return null;
-        for(const ex of workout.exercises) {
-            const log = activeSession.logs[ex.workoutExerciseId];
-            if (log && !log.sets.every(s => s.completed)) {
-                return ex.workoutExerciseId;
-            }
-        }
-        return workout.exercises[0]?.workoutExerciseId || null; // Se todos concluídos, expande o primeiro
-    }, [workout, activeSession]);
+    // 👇 2. A função 'findFirstUncompletedExerciseId' não é mais necessária e foi removida.
 
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
 
+    const [historyModalExercise, setHistoryModalExercise] = useState(null)
+    const [activeVideoUrl, setActiveVideoUrl] = useState(null);
+    const [activeImageUrl, setActiveImageUrl] = useState(null);
+    const [substituteModalInfo, setSubstituteModalInfo] = useState(null);
+
     useEffect(() => {
-        setExpandedExercise(findFirstUncompletedExerciseId());
-    }, [findFirstUncompletedExerciseId]);
+            setTimeout(() => window.scrollTo(0, 0), 50); // 50ms é um delay seguro
+
+    // const findNextActiveExerciseId = () => {
+    //     if (!workout || !activeSession) return null;
+    //     // Encontra o primeiro exercício que não está 100% completo
+    //     const nextExercise = workout.exercises.find(ex => {
+    //         const log = activeSession.logs[ex.workoutExerciseId];
+    //         return log && !log.sets.every(s => s.completed);
+    //     });
+    //     return nextExercise?.workoutExerciseId || null; // Retorna null se todos estiverem concluídos
+    // };
+
+    //setExpandedExercise(findNextActiveExerciseId());
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, [workout, activeSession]); // Depende do activeSession para reavaliar ao voltar para a tela
+
     
-    const handleSetComplete = (restDuration) => {
-        setTimerState({ isRunning: true, duration: restDuration });
-        const nextUncompletedId = findFirstUncompletedExerciseId();
-        if(nextUncompletedId && nextUncompletedId !== expandedExercise) {
-            setExpandedExercise(nextUncompletedId);
+    const handleSetComplete = (restDuration, workoutExerciseId) => {
+    setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
+
+    // Verifica se o exercício recém-concluído está completo
+    const log = activeSession.logs[workoutExerciseId];
+    if (log && log.sets.every(s => s.completed)) {
+        setExpandedExercise(null); // Recolhe o exercício atual
+    }
+    };
+
+    // 👇 5. FUNÇÃO PARA NOTIFICAR E VIBRAR AO FIM DO TIMER
+    const handleTimerFinish = () => {
+        setTimerState({ isRunning: false, duration: 60 });
+
+        // Vibração (se suportada)
+        if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]); // Vibra, pausa, vibra
+        }
+
+        // Notificação (se permitida)
+        if ('Notification' in window && Notification.permission === 'permission') {
+            new Notification('Descanso finalizado!', {
+                body: 'Hora de voltar ao treino!',
+                icon: '/logo192.png' // Opcional: use o caminho para um ícone do seu app
+            });
         }
     };
     
@@ -208,24 +270,65 @@ export default function TrainingModePage() {
 
     const confirmCancelWorkout = () => { setActiveSession(null); navigateTo({ page: 'workouts' }); };
     
+    const handleSubstitute = (selectedIds) => {
+        if (!selectedIds || selectedIds.length === 0 || !substituteModalInfo) return;
+        const workoutExerciseId = substituteModalInfo.workoutExerciseId;
+        const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...activeSession.logs[workoutExerciseId], currentExerciseId: selectedIds[0] } };
+        setActiveSession(prev => ({...prev, logs: newLogs}));
+        setSubstituteModalInfo(null);
+    }
+
+    let substituteModalProps = null;
+    if (substituteModalInfo) {
+        const { workoutExercise } = substituteModalInfo;
+        const originalExerciseDetails = exercises.find(e => e.id === workoutExercise.originalExerciseId) || {};
+        const substitutes = (workoutExercise.substituteIds || []).map(id => exercises.find(e => e.id === id)).filter(Boolean);
+        substituteModalProps = {
+            onAdd: handleSubstitute,
+            onClose: () => setSubstituteModalInfo(null),
+            title: `Substituir ${originalExerciseDetails.name}`,
+            isSingleSelection: true,
+            allowedIds: substitutes.map(s => s.id)
+        }
+    }
+
     return (
-        <div className="animate-fade-in pb-28">
-            {timerState.isRunning && <RestTimer duration={timerState.duration} isRunning={timerState.isRunning} onAdjust={(amount) => setTimerState(p => ({...p, duration: Math.max(0, p.duration + amount)}))} onFinish={() => setTimerState({ isRunning: false, duration: 60 })} />}
-            <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
+        <>
+            {/* 👇 5. Passando a nova função 'handleTimerFinish' para o onFinish */}
+            {timerState.isRunning && <RestTimer duration={timerState.duration} onFinish={handleTimerFinish} />}
             
-            <h1 className="text-3xl font-bold text-white truncate mb-4">{workout.name}</h1>
+            {/* Modais renderizados no topo para evitar problemas de posicionamento */}
+            {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
+            {activeVideoUrl && <YouTubePlayerModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />}
+            {activeImageUrl && <ImageModal url={activeImageUrl} onClose={() => setActiveImageUrl(null)} />}
+            {substituteModalProps && <AddExerciseToWorkoutModal {...substituteModalProps} />}
+            <ConfirmationModal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} onConfirm={confirmCancelWorkout} title="Cancelar Treino"><p>Tem a certeza que quer cancelar o treino? O progresso não será guardado.</p></ConfirmationModal>
+
+            <div className="animate-fade-in pb-28">
+            
+            <h1 className="text-3xl font-bold text-white truncate mb-4">{workout?.name}</h1>
             <div className="space-y-4">
-                {workout.exercises.map(ex => (
-                    <TrainingExerciseItem 
-                        key={ex.workoutExerciseId} 
-                        workoutExercise={ex}
-                        workoutExerciseId={ex.workoutExerciseId} 
-                        log={activeSession.logs[ex.workoutExerciseId]} 
-                        isExpanded={expandedExercise === ex.workoutExerciseId}
-                        onToggleExpand={() => setExpandedExercise(prev => prev === ex.workoutExerciseId ? null : ex.workoutExerciseId)}
-                        onSetComplete={handleSetComplete}
+                {workout?.exercises.map(ex => {
+                    const log = activeSession.logs[ex.workoutExerciseId];
+                    if (!log) return null; // Guarda para evitar erros se o log não existir
+                    const fullDetails = exercises.find(e => e.id === log.currentExerciseId);
+
+                    return (
+                        <TrainingExerciseItem
+                            key={ex.workoutExerciseId}
+                            workoutExercise={ex}
+                            workoutExerciseId={ex.workoutExerciseId}
+                            log={log}
+                            isExpanded={expandedExercise === ex.workoutExerciseId}
+                            onToggleExpand={() => setExpandedExercise(prev => prev === ex.workoutExerciseId ? null : ex.workoutExerciseId)}
+                            onSetComplete={() => handleSetComplete(log.rest, ex.workoutExerciseId)}
+                            onShowHistory={() => setHistoryModalExercise(fullDetails)}
+                            onShowImage={() => fullDetails?.imageUrl && setActiveImageUrl(fullDetails.imageUrl)}
+                            onShowVideo={() => fullDetails?.videoUrl && setActiveVideoUrl(fullDetails.videoUrl)}
+                            onShowSubstitutes={() => setSubstituteModalInfo({ workoutExerciseId: ex.workoutExerciseId, workoutExercise: ex })}
                     />
-                ))}
+                ); 
+                })}
             </div>
              <div className="mt-8 grid grid-cols-2 gap-4">
                  <button onClick={() => setIsCancelModalOpen(true)} className="w-full flex items-center justify-center gap-2 text-blue-400 font-semibold py-3 px-5 rounded-lg border-2 border-blue-600 bg-transparent hover:bg-blue-600/20 transition-colors">
@@ -237,6 +340,7 @@ export default function TrainingModePage() {
                     <span>Finalizar</span>
                 </button>
             </div>
-        </div>
+            </div>
+        </>
     );
 }

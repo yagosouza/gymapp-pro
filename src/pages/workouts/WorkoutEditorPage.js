@@ -150,8 +150,8 @@ export default function WorkoutEditorPage() {
     const exerciseForSubstitutes = editedWorkout.exercises.find(ex => ex.workoutExerciseId === editingSubstitutesFor);
 
     return (
-        <div className="animate-fade-in pb-20">
-             <ConfirmationModal isOpen={!!exerciseToRemove} onClose={() => setExerciseToRemove(null)} onConfirm={handleRemoveExercise} title="Apagar Exercício do Treino"><p>Tem a certeza que quer remover este exercício do treino?</p></ConfirmationModal>
+        <> 
+        <ConfirmationModal isOpen={!!exerciseToRemove} onClose={() => setExerciseToRemove(null)} onConfirm={handleRemoveExercise} title="Apagar Exercício do Treino"><p>Tem a certeza que quer remover este exercício do treino?</p></ConfirmationModal>
              {isAddingExercises && <AddExerciseToWorkoutModal existingIds={editedWorkout.exercises.map(e => e.exerciseId)} onAdd={handleAddExercises} onClose={() => setIsAddingExercises(false)} />}
              {editingSubstitutesFor && 
                 <AddExerciseToWorkoutModal 
@@ -162,7 +162,7 @@ export default function WorkoutEditorPage() {
                     title="Selecionar Substitutos"
                 />
              }
-
+        <div className="animate-fade-in pb-20">
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <InputField label="Nome do Treino" value={editedWorkout.name} onChange={handleNameChange} />
                 <h3 className="text-xl font-semibold text-white mt-6 mb-4">Exercícios do Treino</h3>
@@ -193,5 +193,6 @@ export default function WorkoutEditorPage() {
                 </button>
             </div>
         </div>
+        </>   
     );
 }
