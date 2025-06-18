@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers, User, LogOut, Repeat } from 'lucide-react';
+import { Home, Dumbbell, ClipboardList, ArrowLeft, Layers, User, LogOut, Repeat, Upload } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { APP_VERSION } from '../../constants/initialData';
 import { auth } from '../../firebase/config';
@@ -16,6 +16,8 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
         { id: 'groups', label: 'Grupos Musculares', icon: Layers },
         { id: 'exercises', label: 'Exercícios', icon: Dumbbell },
         { id: 'workouts', label: 'Treinos', icon: ClipboardList },
+        { id: 'import', label: 'Importar Treino', icon: Upload },
+
     ];
     
     const handleNav = (page) => {

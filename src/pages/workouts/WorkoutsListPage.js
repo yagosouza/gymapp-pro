@@ -104,27 +104,28 @@ export default function WorkoutsListPage() {
     };
     
     return (
-        <div className="animate-fade-in h-full flex flex-col">
+        <>
             <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={() => handleDelete(itemToDelete)} title="Apagar Treino"><p>Tem a certeza que quer apagar este treino? Esta ação não pode ser desfeita.</p></ConfirmationModal>
+            <div className="animate-fade-in h-full flex flex-col">
+                <div className="flex-shrink-0">
+                    <button onClick={handleCreate} className="w-full btn-primary bg-blue-600/80 hover:bg-blue-600 mb-6 py-3 rounded-lg flex items-center justify-center">
+                        <Plus size={20}/>
+                        <span>Adicionar Novo Treino</span>
+                    </button>
+                </div>
             
-            <div className="flex-shrink-0">
-                <button onClick={handleCreate} className="w-full btn-primary bg-blue-600/80 hover:bg-blue-600 mb-6 py-3 rounded-lg flex items-center justify-center">
-                    <Plus size={20}/>
-                    <span>Adicionar Novo Treino</span>
-                </button>
+                <div className="space-y-6 overflow-y-auto flex-grow pb-16">
+                    {workouts.map(w => (
+                        <WorkoutListItem
+                            key={w.id}
+                            workout={w}
+                            onStart={() => startWorkoutSession(w.id)}
+                            onEdit={() => handleEdit(w)}
+                            onDeleteRequest={() => setItemToDelete(w.id)}
+                        />
+                    ))}
+                </div>
             </div>
-            
-            <div className="space-y-6 overflow-y-auto flex-grow pb-16">
-                {workouts.map(w => (
-                    <WorkoutListItem
-                        key={w.id}
-                        workout={w}
-                        onStart={() => startWorkoutSession(w.id)}
-                        onEdit={() => handleEdit(w)}
-                        onDeleteRequest={() => setItemToDelete(w.id)}
-                    />
-                ))}
-            </div>
-        </div>
+        </>    
     );
 }

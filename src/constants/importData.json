@@ -1,0 +1,77 @@
+{
+  "profile": {
+    "name": "Yago Souza",
+    "height": "170",
+    "age": "31",
+    "gender": "male"
+  },
+  "muscleGroups": [
+    { "name": "Peito" },
+    { "name": "Ombros" },
+    { "name": "Tríceps" }
+  ],
+  "exercises": [
+    {
+      "name": "Supino Reto com Barra",
+      "muscleGroupName": "Peito",
+      "secondaryMuscleGroupNames": ["Ombros", "Tríceps"]
+    },
+    {
+      "name": "Supino Inclinado com Halteres",
+      "muscleGroupName": "Peito"
+    },
+    {
+      "name": "Tríceps Corda",
+      "muscleGroupName": "Tríceps"
+    }
+  ],
+  "workouts": [
+    {
+      "name": "A - Peito e Tríceps",
+      "exercises": [
+        {
+          "exerciseName": "Supino Reto com Barra",
+          "sets": "4",
+          "reps": "10",
+          "weight": "60",
+          "rest": "60",
+          "substituteExerciseNames": ["Supino Inclinado com Halteres"]
+        },
+        {
+          "exerciseName": "Tríceps Corda",
+          "sets": "3",
+          "reps": "15",
+          "weight": "25",
+          "rest": "60",
+          "substituteExerciseNames": []
+        }
+      ]
+    }
+  ],
+  "measurementHistory": [
+    { 
+      "date": "2024-10-12",
+      "weight": "86.10",
+      "shoulder": "122.00",
+      "chest": "109.00",
+      "waist": "94.00",
+      "abdomen": "100.50",
+      "hip": "103.00",
+      "calfR": "38.00",
+      "calfL": "38.00",
+      "thighR": "57.00",
+      "thighL": "56.50",
+      "armRelaxedR": "37.00",
+      "armRelaxedL": "36.50",
+      "armContractedR": "38.50",
+      "armContractedL": "39.00",
+      "skinfoldTriceps": "17.30",
+      "skinfoldAxillary": "19.70",
+      "skinfoldChest": "25.10",
+      "skinfoldAbdominal": "49.10",
+      "skinfoldSuprailiac": "33.40",
+      "skinfoldSubscapular": "23.20",
+      "skinfoldThigh": "25.00"
+    }
+  ]
+}
