@@ -82,6 +82,8 @@ export default function GymApp() {
                 if (currentView.mode === 'edit') return 'Editor de Treino';
                 return 'Meus Treinos';
             }
+            case 'import': return 'Importar Treino';
+            case 'frequency': return 'Frequência';
             default: return 'GymApp Pro';
         }
     };

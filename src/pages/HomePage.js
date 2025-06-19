@@ -3,7 +3,6 @@ import { useAppContext } from '../context/AppContext';
 import { calculateBMI, calculateBodyFat } from '../utils/calculations';
 import { ClipboardList, Dumbbell, CheckCircle, ExternalLink, Activity, BarChart3, Percent } from 'lucide-react';
 
-
 const ALL_SHORTCUT_ITEMS = [
     { id: 'workouts', title: 'Treinos', Icon: ClipboardList, navigateToConfig: { page: 'workouts' } },
     { id: 'exercises', title: 'Exercícios', Icon: Dumbbell, navigateToConfig: { page: 'exercises' } },
@@ -69,7 +68,6 @@ export function HomePage() {
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{greeting}, {profile.name}!</h1>
             <p className="text-gray-400 text-md md:text-lg mb-8">Pronto(a) para superar os seus limites?</p>
             
-            {/* --- 3. (ALTERADO) O JSX agora mapeia o array de atalhos --- */}
             <div className="grid grid-cols-2 gap-4">
                 {shortcutItems.map(item => (
                     <div 
@@ -85,8 +83,9 @@ export function HomePage() {
                     </div>
                 ))}
 
-                {/* Os outros cards permanecem como estão */}
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2">
+                <div 
+                    onClick={() => navigateTo({ page: 'frequency' })}
+                    className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2 cursor-pointer hover:bg-gray-700/50 transition-colors">
                     <h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-4"><Activity size={20}/> Frequência Semanal</h2>
                     <div className="flex justify-around">
                         {weekDays.map(({ date, dayInitial }) => {
