@@ -66,8 +66,16 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, onLogout }) {
               </button>
             ))}
           </nav>
-          <footer className="p-4 border-t border-gray-700 text-center text-xs text-gray-500">
+          <footer className="p-4 border-t border-gray-700 text-center text-xs text-gray-500 space-y-2">
             <p>Versão {APP_VERSION}</p>
+            
+            {process.env.NODE_ENV === 'development' && (
+                <div>
+                    <span className="inline-block bg-yellow-500/20 text-yellow-300 font-bold px-2 py-1 rounded-md">
+                        MODO DEV
+                    </span>
+                </div>
+            )}
           </footer>
           <div className="p-2">
             <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-md text-lg hover:bg-red-800/50 text-red-400 transition-colors">
