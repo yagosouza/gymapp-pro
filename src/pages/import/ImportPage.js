@@ -1,9 +1,29 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { UploadCloud, DatabaseZap, FileEdit } from 'lucide-react';
+import { UploadCloud, DatabaseZap, FileEdit, Download, Copy, Check, HelpCircle } from 'lucide-react';
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 import { auth, db } from '../../firebase/config';
 import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
+import modelData from '../../constants/importData.json';
+
+const PROMPT_TEXT = `Você é um assistente de extração e transformação de dados.
+
+Sua tarefa principal é analisar o conteúdo de um ou mais arquivos PDF e convertê-lo para uma estrutura JSON específica, fornecida em um arquivo modelo.
+
+Arquivos Fornecidos:
+1.  PDF(s) de Dados: Contêm as informações a serem extraídas.
+2.  modelo.json: Um arquivo JSON que serve como modelo ESTRITO para a estrutura de saída.
+
+Regras de Execução:
+1.  Estrutura Rígida: Siga EXATAMENTE a estrutura do arquivo modelo.json. Use os mesmos nomes de chave e a mesma organização (objetos, arrays, etc.).
+2.  Mapeamento de Dados: Mapeie cuidadosamente as informações dos PDFs para os campos correspondentes na estrutura JSON.
+3.  Dados Ausentes: Se um campo do JSON não tiver uma informação correspondente no PDF, preencha-o com uma string vazia (""), a menos que o modelo sugira outro padrão (como null ou um array vazio []).
+4.  Formatação de Dados: Preste muita atenção à formatação para garantir a validade do JSON:
+    - Datas: Converta datas do formato DD/MM/AAAA para AAAA-MM-DD, conforme o modelo.
+    - Números Decimais: Utilize o ponto (.) como separador decimal, não a vírgula (ex: 86.10).
+    - Unidades: NÃO inclua unidades de medida (como "kg", "cm", "min", "s") nos campos de valores. O nome do campo ou o contexto já devem ser suficientes.
+      - Exemplo Crítico: Para um exercício como "Prancha" com duração de "30-40s", o campo reps no JSON deve ser "30-40", e não "30-40s".
+5.  Saída Final: Sua resposta deve conter APENAS o bloco de código com o JSON finalizado. O JSON deve ser completo e sintaticamente válido, sem comentários, citações ou texto explicativo dentro dele.`;
 
 export default function ImportPage() {
     const { navigateTo, profile } = useAppContext();
@@ -11,6 +31,24 @@ export default function ImportPage() {
 
     const [clearDatabase, setClearDatabase] = useState(false);
     const [conflictStrategy, setConflictStrategy] = useState('overwrite'); // 'overwrite' ou 'skip'
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopyPrompt = () => {
+        navigator.clipboard.writeText(PROMPT_TEXT).then(() => {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        });
+    };
+
+    const handleDownloadModel = () => {
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+            JSON.stringify(modelData, null, 2)
+        )}`;
+        const link = document.createElement("a");
+        link.href = jsonString;
+        link.download = "modelo_treino.json";
+        link.click();
+    };
 
     /**
      * Pega uma string de repetições (ex: "10-12" ou "15") e retorna o maior valor.
@@ -192,6 +230,26 @@ export default function ImportPage() {
                             disabled={isImporting}
                         />
                     </label>
+                </div>
+
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg space-y-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <HelpCircle size={20} className="text-blue-400"/>
+                        Como Criar seu Arquivo de Importação
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                        Não tem um arquivo JSON? Sem problemas. Baixe nosso modelo, envie para sua IA favorita (ChatGPT, Gemini, etc.) junto com o PDF do seu treino e peça para ela preenchê-lo para você.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button onClick={handleDownloadModel} className="w-full flex items-center justify-center gap-2 btn-secondary">
+                            <Download size={18}/>
+                            Baixar Modelo
+                        </button>
+                        <button onClick={handleCopyPrompt} className={`w-full flex items-center justify-center gap-2 btn-secondary ${isCopied ? 'bg-green-600/80 hover:bg-green-600/80' : ''}`}>
+                            {isCopied ? <Check size={18}/> : <Copy size={18}/>}
+                            {isCopied ? 'Prompt Copiado!' : 'Copiar Prompt para IA'}
+                        </button>
+                    </div>
                 </div>
                 
                 {/* --- NOVOS CONTROLES DE OPÇÕES --- */}
