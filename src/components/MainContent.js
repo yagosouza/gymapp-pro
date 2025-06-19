@@ -10,6 +10,8 @@ import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
 import WorkoutsListPage from '../pages/workouts/WorkoutsListPage';
 import TrainingModePage from '../pages/workouts/TrainingModePage';
 import WorkoutEditorPage from '../pages/workouts/WorkoutEditorPage';
+import ImportPage from '../pages/import/ImportPage';
+import { FrequencyPage } from '../pages/frequency/FrequencyPage';
 
 export default function MainContent() {
     const { currentView } = useAppContext();
@@ -17,6 +19,8 @@ export default function MainContent() {
     switch (currentView.page) {
       case 'home': return <HomePage />;
       case 'profile': return <ProfilePage />;
+      case 'import': return <ImportPage />;
+      case 'frequency': return <FrequencyPage />;
       case 'groups': 
         if(currentView.mode === 'create' || currentView.mode === 'edit'){ 
             return <GroupFormPage />; 

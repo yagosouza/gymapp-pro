@@ -1,17 +1,50 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { calculateBMI, calculateBodyFat } from '../utils/calculations';
-import { ClipboardList, Dumbbell, CheckCircle, ExternalLink, Activity } from 'lucide-react';
+import { ClipboardList, Dumbbell, CheckCircle, ExternalLink, Activity, BarChart3, Percent } from 'lucide-react';
+
+const ALL_SHORTCUT_ITEMS = [
+    { id: 'workouts', title: 'Treinos', Icon: ClipboardList, navigateToConfig: { page: 'workouts' } },
+    { id: 'exercises', title: 'Exercícios', Icon: Dumbbell, navigateToConfig: { page: 'exercises' } },
+    { id: 'bmi', title: 'IMC', Icon: BarChart3, navigateToConfig: { page: 'profile' } },
+    { id: 'bodyFat', title: 'Gordura', Icon: Percent, navigateToConfig: { page: 'profile' } }
+];
 
 export function HomePage() {
     const { workouts, exercises, profile, history, navigateTo } = useAppContext();
     
+    // --- 1. Os cálculos permanecem os mesmos ---
     const lastWorkout = workouts.filter(w => w.lastCompleted).sort((a,b) => new Date(b.lastCompleted) - new Date(a.lastCompleted))[0];
-    const latestRecord = profile.measurementHistory.slice(-1)[0] || {};
+    const latestRecord = (profile && profile.measurementHistory && profile.measurementHistory.length > 0)
+        ? profile.measurementHistory.slice(-1)[0]
+        : {};
     const bmi = calculateBMI(latestRecord.weight, profile.height);
     const bodyFat = calculateBodyFat(latestRecord, profile.age, profile.gender);
+    const greeting = profile.gender === 'female' ? 'Bem-vinda' : 'Bem-vindo';
 
-    // Função para obter os últimos 7 dias da semana
+    // --- 2. (NOVO) Criamos o array de atalhos dinâmicos ---
+    const shortcutItems = useMemo(() => {
+        // Usa a lista do perfil ou uma lista padrão com 4 itens
+        const shortcutIds = profile.homeShortcuts || ['workouts', 'exercises', 'bmi', 'bodyFat'];
+
+        return shortcutIds.map(id => {
+            const item = ALL_SHORTCUT_ITEMS.find(sc => sc.id === id);
+            if (!item) return null;
+
+            // Adiciona o valor dinâmico a cada atalho
+            let value;
+            switch (id) {
+                case 'workouts': value = workouts.length; break;
+                case 'exercises': value = exercises.length; break;
+                case 'bmi': value = bmi > 0 ? bmi.toFixed(1) : 'N/A'; break;
+                case 'bodyFat': value = bodyFat > 0 ? `${bodyFat.toFixed(1)}%` : 'N/A'; break;
+                default: value = '';
+            }
+            return { ...item, value };
+        }).filter(Boolean); // Remove itens nulos se um ID salvo for inválido
+
+    }, [profile, workouts, exercises, bmi, bodyFat]);
+
     const getPastSevenDays = () => {
         const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
         const result = [];
@@ -32,16 +65,27 @@ export function HomePage() {
 
     return (
         <div className="animate-fade-in">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Bem-vindo, {profile.name}!</h1>
-            <p className="text-gray-400 text-md md:text-lg mb-8">Pronto para superar os seus limites?</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{greeting}, {profile.name}!</h1>
+            <p className="text-gray-400 text-md md:text-lg mb-8">Pronto(a) para superar os seus limites?</p>
             
             <div className="grid grid-cols-2 gap-4">
-                <div onClick={() => navigateTo({page: 'workouts'})} className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"><h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-2"><ClipboardList size={20}/> Treinos</h2><p className="text-4xl font-bold text-white">{workouts.length}</p></div>
-                <div onClick={() => navigateTo({page: 'exercises'})} className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"><h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-2"><Dumbbell size={20}/> Exercícios</h2><p className="text-4xl font-bold text-white">{exercises.length}</p></div>
-                <div onClick={() => navigateTo({page: 'profile'})} className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"><h2 className="text-lg font-semibold text-blue-400 mb-2">IMC</h2><p className="text-4xl font-bold text-white">{bmi > 0 ? bmi.toFixed(1) : 'N/A'}</p></div>
-                <div onClick={() => navigateTo({page: 'profile'})} className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"><h2 className="text-lg font-semibold text-blue-400 mb-2">% Gordura</h2><p className="text-4xl font-bold text-white">{bodyFat > 0 ? `${bodyFat.toFixed(1)}%` : 'N/A'}</p></div>
+                {shortcutItems.map(item => (
+                    <div 
+                        key={item.id}
+                        onClick={() => navigateTo(item.navigateToConfig)} 
+                        className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                    >
+                        <h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-2">
+                            <item.Icon size={20}/> 
+                            {item.title}
+                        </h2>
+                        <p className="text-4xl font-bold text-white">{item.value}</p>
+                    </div>
+                ))}
 
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2">
+                <div 
+                    onClick={() => navigateTo({ page: 'frequency' })}
+                    className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2 cursor-pointer hover:bg-gray-700/50 transition-colors">
                     <h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-4"><Activity size={20}/> Frequência Semanal</h2>
                     <div className="flex justify-around">
                         {weekDays.map(({ date, dayInitial }) => {

@@ -7,15 +7,10 @@ import { useAppContext } from '../context/AppContext';
 import { Menu } from 'lucide-react';
 import { GlobalStyles } from './ui/GlobalStyles';
 
-export default function GymApp({ onLogout }) {
-    const { currentView, setActiveSession, goBack } = useAppContext();
+export default function GymApp() {
+    const { currentView, goBack } = useAppContext();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const touchStartRef = useRef(null);
-    
-    const handleActualLogout = () => {
-        setActiveSession(null);
-        onLogout();
-    }
 
     // Efeito para o botão "voltar" do Android
     useEffect(() => {
@@ -87,6 +82,8 @@ export default function GymApp({ onLogout }) {
                 if (currentView.mode === 'edit') return 'Editor de Treino';
                 return 'Meus Treinos';
             }
+            case 'import': return 'Importar Treino';
+            case 'frequency': return 'Frequência';
             default: return 'GymApp Pro';
         }
     };
@@ -97,7 +94,6 @@ export default function GymApp({ onLogout }) {
             <Sidebar 
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
-                onLogout={handleActualLogout} 
             />
             <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300 pb-16 md:pb-0"> {/* Adicionar padding */}
                 <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] bg-gray-900/80 backdrop-blur-sm sticky top-0 z-20 flex items-center md:hidden">
