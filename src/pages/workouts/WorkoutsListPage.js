@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react'; // Adicionado useMemo
 import { useAppContext } from '../../context/AppContext';
-import { Clock, PlayCircle, Trash2, Plus, ChevronDown } from 'lucide-react';
+import { Clock, PlayCircle, Trash2, Plus, ChevronDown, ListOrdered, Repeat } from 'lucide-react'; // Adicionado ListOrdered
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
+import { CustomSelect } from '../../components/ui/CustomSelect';
+import useStickyState from '../../hooks/useStickyState';
 
 function WorkoutListItem({ workout, onEdit, onDeleteRequest, onStart }) {
     const { exercises } = useAppContext();
@@ -89,8 +91,17 @@ function WorkoutListItem({ workout, onEdit, onDeleteRequest, onStart }) {
 }
 
 export default function WorkoutsListPage() {
-    const { workouts, deleteWorkout, navigateTo, startWorkoutSession } = useAppContext();
+    const { workouts, workoutsAPI, navigateTo, startWorkoutSession, activeSession } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
+    // --- LÓGICA DE ORDENAÇÃO ADICIONADA AQUI ---
+    const [sortOrder, setSortOrder] = useStickyState('default', 'workoutSortOrder');
+
+    const sortOptions = [
+        { id: 'default', name: 'Padrão' },
+        { id: 'alpha', name: 'Ordem Alfabética' },
+        { id: 'day', name: 'Dia da Semana' },
+        { id: 'lastCompleted', name: 'Última Vez Concluído' }
+    ];
 
     const handleCreate = () => 
         navigateTo({ page: 'workouts', mode: 'edit' });
@@ -99,23 +110,76 @@ export default function WorkoutsListPage() {
         navigateTo({ page: 'workouts', mode: 'edit', id: workout.id });
     
     const handleDelete = (id) => { 
-        deleteWorkout(id);
+        workoutsAPI.delete(id); // Corrigido para usar a API do contexto
         setItemToDelete(null); 
     };
+
+    const activeWorkout = activeSession ? workouts.find(w => w.id === activeSession.workoutId) : null;
+    const handleReturnToWorkout = () => {
+        navigateTo({ page: 'workouts', mode: 'training' });
+    };
+
+    const sortedWorkouts = useMemo(() => {
+        const sorted = [...workouts];
+
+        if (sortOrder === 'alpha') {
+            sorted.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortOrder === 'day') {
+            const dayOrder = { 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6, 'domingo': 7 };
+            const getDayValue = (name) => {
+                const lowerName = name.toLowerCase();
+                for (const day in dayOrder) {
+                    if (lowerName.includes(day)) return dayOrder[day];
+                }
+                return Infinity;
+            };
+            sorted.sort((a, b) => getDayValue(a.name) - getDayValue(b.name));
+        }
+        // Adicionada opção para ordenar por "última vez concluído"
+        else if (sortOrder === 'lastCompleted') {
+            sorted.sort((a, b) => {
+                const dateA = a.lastCompleted ? new Date(a.lastCompleted) : 0;
+                const dateB = b.lastCompleted ? new Date(b.lastCompleted) : 0;
+                return dateB - dateA; // Mais recente primeiro
+            });
+        }
+        
+        return sorted;
+    }, [workouts, sortOrder]);
     
     return (
         <>
             <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={() => handleDelete(itemToDelete)} title="Apagar Treino"><p>Tem a certeza que quer apagar este treino? Esta ação não pode ser desfeita.</p></ConfirmationModal>
             <div className="animate-fade-in h-full flex flex-col">
                 <div className="flex-shrink-0">
+                    {activeWorkout && (
+                        <div className="mb-6">
+                            <button onClick={handleReturnToWorkout} className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-md text-lg bg-green-600/80 text-white font-semibold shadow-md animate-pulse">
+                                <Repeat size={24}/>
+                                <span>Retomar Treino: {activeWorkout.name}</span>
+                            </button>
+                        </div>
+                    )}
                     <button onClick={handleCreate} className="w-full btn-primary bg-blue-600/80 hover:bg-blue-600 mb-6 py-3 rounded-lg flex items-center justify-center">
                         <Plus size={20}/>
                         <span>Adicionar Novo Treino</span>
                     </button>
+                    <div className="mb-6 grid grid-cols-[auto_1fr] items-center gap-2 text-gray-300">
+                        <div className="flex items-center gap-2">
+                           <ListOrdered size={20} />
+                           <span className="font-medium">Ordenar por:</span>
+                        </div>
+                        <CustomSelect
+                            options={sortOptions}
+                            value={sortOrder}
+                            onChange={setSortOrder} // A prop onChange do CustomSelect já passa o valor (id) diretamente
+                        />
+                    </div>
                 </div>
             
                 <div className="space-y-6 overflow-y-auto flex-grow pb-16">
-                    {workouts.map(w => (
+                    {/* MAPEAMENTO DA LISTA ORDENADA */}
+                    {sortedWorkouts.map(w => (
                         <WorkoutListItem
                             key={w.id}
                             workout={w}
