@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InputField } from '../../components/ui/InputField';
-// 👇 6. Adicionado o ícone Undo2 para a função de reverter
 import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown, Undo2, Activity } from 'lucide-react';
 import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
 import ImageModal from '../../components/modals/ImageModal';
 import HistoryModal from '../../components/modals/HistoryModal';
 import AddExerciseToWorkoutModal from '../../components/modals/AddExerciseToWorkoutModal';
+import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 
-// Componente do Temporizador de Descanso (VERSÃO MELHORADA)
 function RestTimer({ duration, onFinish }) {
     const [timeLeft, setTimeLeft] = useState(duration);
     const audioRef = useRef(null);
@@ -23,7 +22,7 @@ function RestTimer({ duration, onFinish }) {
                 audioRef.current.currentTime = 0;
                 audioRef.current.play().catch(() => {});
             }
-            onFinish(); // Chama a função do pai que dispara notificação e vibração
+            onFinish();
         };
 
         if (timerId.current) {
@@ -50,7 +49,6 @@ function RestTimer({ duration, onFinish }) {
 
     const progress = (timeLeft / duration) * 100;
     
-    // 👇 4. Estilo para respeitar a safe area em telas edge-to-edge
     const safeAreaStyles = {
         paddingTop: `calc(1rem + env(safe-area-inset-top))`,
         paddingLeft: `calc(1rem + env(safe-area-inset-left))`,
@@ -61,7 +59,7 @@ function RestTimer({ duration, onFinish }) {
     return (
         <div 
             className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur-sm z-50 text-white text-center border-b border-blue-500"
-            style={safeAreaStyles} // Aplicando o estilo da safe area
+            style={safeAreaStyles}
         >
              <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_c668156e15.mp3?filename=short-success-sound-glockenspiel-treasure-video-game-2-18634.mp3" preload="auto"></audio>
             <div className="flex justify-between items-center">
@@ -80,19 +78,7 @@ function RestTimer({ duration, onFinish }) {
     );
 }
 
-// Componente para cada exercício na lista de treino (VERSÃO MELHORADA)
-function TrainingExerciseItem({ 
-    workoutExercise, 
-    workoutExerciseId, 
-    log, 
-    isExpanded, 
-    onToggleExpand, 
-    onSetComplete, 
-    onShowHistory, 
-    onShowVideo, 
-    onShowImage, 
-    onShowSubstitutes 
-}) {
+function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpanded, onToggleExpand, onSetComplete, onShowHistory, onShowVideo, onShowImage, onShowSubstitutes }) {
     const { exercises, history, activeSession, setActiveSession } = useAppContext();
 
     const fullExerciseDetails = exercises.find(e => e.id === log.currentExerciseId) || {};
@@ -134,7 +120,6 @@ function TrainingExerciseItem({
         setActiveSession(prev => ({...prev, logs: newLogs}));
     };
 
-    // 👇 6. Nova função para reverter a substituição
     const handleRevertSubstitution = () => {
         const newLogs = { ...activeSession.logs, [workoutExerciseId]: { ...log, currentExerciseId: log.originalExerciseId } };
         setActiveSession(prev => ({...prev, logs: newLogs}));
@@ -142,7 +127,6 @@ function TrainingExerciseItem({
     
     return (
         <div className="bg-gray-800 rounded-xl shadow-lg relative overflow-hidden">
-            {/* 👇 3. Novo Overlay para exercício concluído */}
             {isCompleted && (
             <div className="bg-green-500/20 px-4 h-7 flex items-center justify-center gap-2">
                 <CheckCircle size={16} className="text-green-400"/>
@@ -155,7 +139,6 @@ function TrainingExerciseItem({
                     <span className="text-yellow-400 text-xs font-bold uppercase tracking-wider">Em Andamento</span>
                 </div>
             )}
-            {/* A opacidade agora é aplicada aqui, para não afetar o overlay */}
              <div className={`p-4 transition-opacity ${isCompleted ? 'opacity-60' : ''}`}>
                 <div className="flex gap-4 items-start">
                     <img src={fullExerciseDetails.imageUrl || 'https://placehold.co/128x128/1f2937/FFFFFF?text=GYM'} alt={fullExerciseDetails.name} className="w-24 h-24 rounded-md object-cover cursor-pointer" onClick={onShowImage}/>
@@ -165,7 +148,6 @@ function TrainingExerciseItem({
                              <ChevronDown size={28} className={`transition-transform text-blue-400 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                             {/* 👇 6. Botão de Reverter aparece se o exercício foi substituído */}
                             {isSubstituted && <button onClick={handleRevertSubstitution} className="btn-icon text-gray-400 hover:text-yellow-400" title="Reverter para o original"><Undo2 size={24}/></button>}
                             
                             {(workoutExercise.substituteIds || []).length > 0 && <button onClick={onShowSubstitutes} className="btn-icon text-gray-400 hover:text-blue-400"><Repeat size={24}/></button>}
@@ -203,6 +185,8 @@ export default function TrainingModePage() {
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
+    // --- (NOVO) Estado para controlar o loading ao finalizar ---
+    const [isFinishing, setIsFinishing] = useState(false);
 
     const [historyModalExercise, setHistoryModalExercise] = useState(null)
     const [activeVideoUrl, setActiveVideoUrl] = useState(null);
@@ -210,60 +194,41 @@ export default function TrainingModePage() {
     const [substituteModalInfo, setSubstituteModalInfo] = useState(null);
 
     useEffect(() => {
-            setTimeout(() => window.scrollTo(0, 0), 50); // 50ms é um delay seguro
-
-    // const findNextActiveExerciseId = () => {
-    //     if (!workout || !activeSession) return null;
-    //     // Encontra o primeiro exercício que não está 100% completo
-    //     const nextExercise = workout.exercises.find(ex => {
-    //         const log = activeSession.logs[ex.workoutExerciseId];
-    //         return log && !log.sets.every(s => s.completed);
-    //     });
-    //     return nextExercise?.workoutExerciseId || null; // Retorna null se todos estiverem concluídos
-    // };
-
-    //setExpandedExercise(findNextActiveExerciseId());
-
+        setTimeout(() => window.scrollTo(0, 0), 50);
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
-    }, [workout, activeSession]); // Depende do activeSession para reavaliar ao voltar para a tela
+    }, [workout, activeSession]);
 
     
     const handleSetComplete = (restDuration, workoutExerciseId) => {
-    setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
-
-    // Verifica se o exercício recém-concluído está completo
-    const log = activeSession.logs[workoutExerciseId];
-    if (log && log.sets.every(s => s.completed)) {
-        setExpandedExercise(null); // Recolhe o exercício atual
-    }
+        setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
+        const log = activeSession.logs[workoutExerciseId];
+        if (log && log.sets.every(s => s.completed)) {
+            setExpandedExercise(null);
+        }
     };
 
-    // 👇 5. FUNÇÃO PARA NOTIFICAR E VIBRAR AO FIM DO TIMER
     const handleTimerFinish = () => {
         setTimerState({ isRunning: false, duration: 60 });
-
-        // Vibração (se suportada)
         if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]); // Vibra, pausa, vibra
+            navigator.vibrate([200, 100, 200]);
         }
-
-        // Notificação (se permitida)
-        if ('Notification' in window && Notification.permission === 'permission') {
+        if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Descanso finalizado!', {
                 body: 'Hora de voltar ao treino!',
-                icon: '/logo192.png' // Opcional: use o caminho para um ícone do seu app
+                icon: '/logo192.png'
             });
         }
     };
     
     const finishWorkout = async () => {
+        // --- (ALTERADO) Ativa o loading ---
+        setIsFinishing(true);
         const completionDate = new Date().toISOString();
         
-        // Prepara o objeto para o histórico
         const newHistoryEntry = { 
-            id: Date.now().toString(), // Adicionado para consistência, embora o Firestore crie o seu próprio
+            id: Date.now().toString(),
             workoutId: workout.id, 
             workoutName: workout.name, 
             completionDate: completionDate, 
@@ -277,19 +242,17 @@ export default function TrainingModePage() {
         };
 
         try {
-            // CREATE: Adiciona a entrada ao histórico no Firestore
             await historyAPI.create(newHistoryEntry);
-            
-            // UPDATE: Atualiza o campo 'lastCompleted' do treino atual
             await workoutsAPI.update(workout.id, { lastCompleted: completionDate });
-
-            // Limpa a sessão ativa e navega para a lista de treinos
+            
             setActiveSession(null); 
             navigateTo({ page: 'workouts' });
-
         } catch (error) {
             console.error("Erro ao finalizar o treino:", error);
             alert("Ocorreu um erro ao salvar o seu progresso. Tente novamente.");
+        } finally {
+            // --- (ALTERADO) Desativa o loading, ocorrendo sucesso ou falha ---
+            setIsFinishing(false);
         }
     };
 
@@ -319,10 +282,11 @@ export default function TrainingModePage() {
 
     return (
         <>
-            {/* 👇 5. Passando a nova função 'handleTimerFinish' para o onFinish */}
+            {/* --- (NOVO) LoadingOverlay renderizado aqui --- */}
+            <LoadingOverlay isActive={isFinishing} message="A guardar o seu progresso..." />
+
             {timerState.isRunning && <RestTimer duration={timerState.duration} onFinish={handleTimerFinish} />}
             
-            {/* Modais renderizados no topo para evitar problemas de posicionamento */}
             {historyModalExercise && <HistoryModal exercise={historyModalExercise} history={history} onClose={() => setHistoryModalExercise(null)} />}
             {activeVideoUrl && <YouTubePlayerModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />}
             {activeImageUrl && <ImageModal url={activeImageUrl} onClose={() => setActiveImageUrl(null)} />}
@@ -335,7 +299,7 @@ export default function TrainingModePage() {
             <div className="space-y-4">
                 {workout?.exercises.map(ex => {
                     const log = activeSession.logs[ex.workoutExerciseId];
-                    if (!log) return null; // Guarda para evitar erros se o log não existir
+                    if (!log) return null;
                     const fullDetails = exercises.find(e => e.id === log.currentExerciseId);
 
                     return (
@@ -360,7 +324,8 @@ export default function TrainingModePage() {
                     <X size={20}/>
                     <span>Cancelar</span>
                 </button>
-                <button onClick={finishWorkout} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-green-700 transition-colors shadow">
+                {/* --- (ALTERADO) Botão é desativado durante o loading --- */}
+                <button onClick={finishWorkout} disabled={isFinishing} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-green-700 transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed">
                     <StopCircle size={20}/>
                     <span>Finalizar</span>
                 </button>
