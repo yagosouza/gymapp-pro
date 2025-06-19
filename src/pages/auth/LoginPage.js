@@ -11,11 +11,13 @@ import {
     createUserWithEmailAndPassword,
     sendPasswordResetEmail 
 } from "firebase/auth";
+import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoginView, setIsLoginView] = useState(true); // Estado para controlar a visão
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,6 +26,8 @@ export function LoginPage() {
             return;
         }
 
+        setIsLoading(true);
+
         if (isLoginView) {
             // --- LÓGICA DE LOGIN ---
             try {
@@ -31,6 +35,7 @@ export function LoginPage() {
                 // O listener em App.js irá lidar com o redirecionamento
             } catch (error) {
                 alert(`Erro ao fazer login: ${error.message}`);
+                setIsLoading(false);
             }
         } else {
             // --- LÓGICA DE CADASTRO ---
@@ -39,6 +44,7 @@ export function LoginPage() {
                 // O listener em App.js irá lidar com o login automático após o cadastro
             } catch (error) {
                 alert(`Erro ao criar conta: ${error.message}`);
+                setIsLoading(false);
             }
         }
     };
@@ -49,16 +55,22 @@ export function LoginPage() {
         if (!userEmail) {
             return; // O utilizador cancelou
         }
+        setIsLoading(true);
         try {
             await sendPasswordResetEmail(auth, userEmail);
             alert('Um e-mail para recuperação de senha foi enviado para o seu endereço.');
         } catch (error) {
             alert(`Erro ao enviar e-mail de recuperação: ${error.message}`);
+        } finally {
+            setIsLoading(false);
         }
     };
     
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <>
+            <LoadingOverlay isActive={isLoading} message={isLoginView ? 'Entrando...' : 'Criando conta...'} />
+
+            <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
             <GlobalStyles />
             <div className="w-full max-w-sm">
                 <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full space-y-6 animate-fade-in">
@@ -88,5 +100,6 @@ export function LoginPage() {
                 <p className="text-center text-xs text-gray-600 mt-4">Versão {APP_VERSION}</p>
             </div>
         </div>
+        </>  
     );
 }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase/config';
 import { collection, onSnapshot, doc, setDoc, addDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useStickyState } from '../hooks/useStickyState';
+import { LoadingOverlay } from '../components/ui/LoadingOverlay';
 
 const AppContext = createContext();
 
@@ -164,7 +165,7 @@ export const AppProvider = ({ children, userId }) => {
 
     // Não renderiza nada até o perfil ser carregado para evitar erros
     if (profile === null) {
-        return <div>A carregar dados...</div>;
+        return <LoadingOverlay isActive={profile === null} message="A carregar dados..." />;
     }
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

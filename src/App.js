@@ -4,6 +4,7 @@ import GymApp from './components/GymApp';
 import { AppProvider } from './context/AppContext';
 import { auth } from './firebase/config'; // Importe o auth
 import { onAuthStateChanged } from "firebase/auth";
+import { LoadingOverlay } from './components/ui/LoadingOverlay'; // Importar o novo componente
 
 export default function App() {
     const [user, setUser] = useState(null);
@@ -22,7 +23,7 @@ export default function App() {
 
     if (loading) {
         // Pode adicionar um componente de loading aqui
-        return <div>A carregar...</div>;
+        return <LoadingOverlay isActive={true} message="A verificar sessão..." />;
     }
 
     if (!user) {

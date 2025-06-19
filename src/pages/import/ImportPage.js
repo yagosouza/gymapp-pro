@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { UploadCloud } from 'lucide-react';
-import { collection, getDocs, addDoc, setDoc, doc } from "firebase/firestore";
+import { UploadCloud, DatabaseZap, FileEdit } from 'lucide-react';
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 import { auth, db } from '../../firebase/config';
+import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 
-// Renomeado para ImportPage
-export default function ImportPage() { 
-    const { 
-        navigateTo,
-        profile // Precisamos do perfil para mesclar o histórico
-    } = useAppContext();
+export default function ImportPage() {
+    const { navigateTo, profile } = useAppContext();
     const [isImporting, setIsImporting] = useState(false);
+
+    const [clearDatabase, setClearDatabase] = useState(false);
+    const [conflictStrategy, setConflictStrategy] = useState('overwrite'); // 'overwrite' ou 'skip'
 
     /**
      * Pega uma string de repetições (ex: "10-12" ou "15") e retorna o maior valor.
@@ -24,81 +24,117 @@ export default function ImportPage() {
         return isNaN(parseInt(lastValue, 10)) ? repString : lastValue;
     };
 
-    const processJsonImport = async (data) => {
+    const processJsonImport = async (data, options) => {
+        const { clearDatabase, conflictStrategy } = options;
         const {
             profile: profileData = {},
-            muscleGroups = [],
-            exercises = [],
-            workouts = [],
+            muscleGroups: importMuscleGroups = [],
+            exercises: importExercises = [],
+            workouts: importWorkouts = [],
             measurementHistory = [],
         } = data;
-        
+
         const userId = auth.currentUser.uid;
         if (!userId) throw new Error("Usuário não autenticado.");
 
+        const batch = writeBatch(db);
+        
+        // --- ETAPA 1: DELEÇÃO (SE SOLICITADO) ---
+        if (clearDatabase) {
+            // Busca os documentos atuais para deletá-los
+            const workoutsSnap = await getDocs(collection(db, 'users', userId, 'workouts'));
+            workoutsSnap.forEach(document => batch.delete(document.ref));
+            
+            const exercisesSnap = await getDocs(collection(db, 'users', userId, 'exercises'));
+            exercisesSnap.forEach(document => batch.delete(document.ref));
+
+            const groupsSnap = await getDocs(collection(db, 'users', userId, 'muscleGroups'));
+            groupsSnap.forEach(document => batch.delete(document.ref));
+        }
+
+        // --- ETAPA 2: PREPARAR MAPAS DE DADOS EXISTENTES (SE NÃO FOR LIMPAR) ---
         const groupMap = new Map();
         const exerciseMap = new Map();
+        const workoutMap = new Map();
 
-        // Pré-carrega os dados existentes para evitar duplicados
-        const existingGroupsSnap = await getDocs(collection(db, 'users', userId, 'muscleGroups'));
-        existingGroupsSnap.forEach(doc => groupMap.set(doc.data().name, doc.id));
-        
-        const existingExercisesSnap = await getDocs(collection(db, 'users', userId, 'exercises'));
-        existingExercisesSnap.forEach(doc => exerciseMap.set(doc.data().name, doc.id));
-        
-        // Etapa 1: Processa e cria grupos musculares, incluindo os mencionados nos exercícios
-        const allGroupNames = new Set(muscleGroups.map(g => g.name));
-        exercises.forEach(ex => {
+        if (!clearDatabase) {
+            const groupsSnap = await getDocs(collection(db, 'users', userId, 'muscleGroups'));
+            groupsSnap.forEach(doc => groupMap.set(doc.data().name, doc.id));
+            
+            const exercisesSnap = await getDocs(collection(db, 'users', userId, 'exercises'));
+            exercisesSnap.forEach(doc => exerciseMap.set(doc.data().name, doc.id));
+
+            const workoutsSnap = await getDocs(collection(db, 'users', userId, 'workouts'));
+            workoutsSnap.forEach(doc => workoutMap.set(doc.data().name, doc.id));
+        }
+
+        // --- ETAPA 3: CRIAR GRUPOS MUSCULARES ---
+        const allGroupNames = new Set(importMuscleGroups.map(g => g.name));
+        importExercises.forEach(ex => {
             if (ex.muscleGroupName) allGroupNames.add(ex.muscleGroupName);
             (ex.secondaryMuscleGroupNames || []).forEach(name => allGroupNames.add(name));
         });
         
         for (const groupName of allGroupNames) {
             if (!groupMap.has(groupName)) {
-                const newDocRef = await addDoc(collection(db, 'users', userId, 'muscleGroups'), { name: groupName });
-                groupMap.set(groupName, newDocRef.id);
+                const newDocRef = doc(collection(db, 'users', userId, 'muscleGroups'));
+                batch.set(newDocRef, { name: groupName });
+                groupMap.set(groupName, newDocRef.id); // Adiciona o novo grupo ao mapa para uso futuro
             }
         }
 
-        // Etapa 2: Processa Exercícios
-        for (const exercise of exercises) {
+        // --- ETAPA 4: CRIAR EXERCÍCIOS ---
+        for (const exercise of importExercises) {
             if (!exerciseMap.has(exercise.name)) {
                 const muscleGroupId = groupMap.get(exercise.muscleGroupName);
-                if (!muscleGroupId) throw new Error(`Grupo '${exercise.muscleGroupName}' não encontrado.`);
+                // Validação para pular exercícios cujo grupo principal não foi encontrado
+                if (!muscleGroupId) continue; 
                 
                 const secondaryMuscleGroupIds = (exercise.secondaryMuscleGroupNames || []).map(name => groupMap.get(name)).filter(Boolean);
 
-                const exerciseData = { ...exercise, muscleGroupId, secondaryMuscleGroupIds };
-                delete exerciseData.muscleGroupName;
-                delete exerciseData.secondaryMuscleGroupNames;
-
-                const newDocRef = await addDoc(collection(db, 'users', userId, 'exercises'), exerciseData);
-                exerciseMap.set(exercise.name, newDocRef.id);
+                const newDocRef = doc(collection(db, 'users', userId, 'exercises'));
+                batch.set(newDocRef, {
+                    name: exercise.name,
+                    muscleGroupId,
+                    secondaryMuscleGroupIds,
+                    videoUrl: exercise.videoUrl || '',
+                    imageUrl: exercise.imageUrl || ''
+                });
+                exerciseMap.set(exercise.name, newDocRef.id); // Adiciona o novo exercício ao mapa
             }
         }
         
-        // Etapa 3: Processar Treinos
-        for (const workout of workouts) {
-            const workoutExercises = workout.exercises.map((ex, index) => {
+        // --- ETAPA 5: CRIAR TREINOS (COM LÓGICA DE CONFLITO) ---
+        for (const workout of importWorkouts) {
+            const workoutExercises = (workout.exercises || []).map((ex, index) => {
                 const exerciseId = exerciseMap.get(ex.exerciseName);
-                if (!exerciseId) throw new Error(`Exercício "${ex.exerciseName}" não foi definido na lista principal.`);
+                if (!exerciseId) return null;
 
                 const substituteIds = (ex.substituteExerciseNames || []).map(name => exerciseMap.get(name)).filter(Boolean);
                 
                 return {
-                    exerciseId,
-                    substituteIds,
+                    exerciseId, substituteIds,
                     sets: ex.sets || '3',
                     reps: parseRepValue(ex.reps) || '12',
                     rest: ex.rest || '60',
                     weight: ex.weight || '',
                     workoutExerciseId: Date.now() + index,
                 };
-            });
-            await addDoc(collection(db, 'users', userId, 'workouts'), { ...workout, exercises: workoutExercises });
+            }).filter(Boolean);
+
+            const workoutData = { name: workout.name, exercises: workoutExercises };
+            const existingWorkoutId = workoutMap.get(workout.name);
+
+            if (existingWorkoutId) {
+                if (conflictStrategy === 'overwrite') {
+                    batch.set(doc(db, 'users', userId, 'workouts', existingWorkoutId), workoutData);
+                }
+            } else {
+                batch.set(doc(collection(db, 'users', userId, 'workouts')), workoutData);
+            }
         }
 
-        // Etapa 4 e 5: Perfil e Histórico de Medidas
+        // --- ETAPA 6: ATUALIZAR PERFIL E HISTÓRICO ---
         const finalProfileData = { ...profileData };
         if (measurementHistory.length > 0) {
             const existingHistory = profile?.measurementHistory || [];
@@ -108,9 +144,10 @@ export default function ImportPage() {
         }
         
         if (Object.keys(finalProfileData).length > 0) {
-            // Usa 'set' com 'merge' para atualizar ou criar o perfil sem sobrescrever outros campos.
-            await setDoc(doc(db, 'users', userId, 'profile', 'data'), finalProfileData, { merge: true });
+            batch.set(doc(db, 'users', userId, 'profile', 'data'), finalProfileData, { merge: true });
         }
+
+        await batch.commit();
     };
 
     const handleFileImport = async (event) => {
@@ -122,11 +159,10 @@ export default function ImportPage() {
             const fileContent = await file.text();
             const data = JSON.parse(fileContent);
             
-            // Chama a função de processamento local
-            await processJsonImport(data);
+            await processJsonImport(data, { clearDatabase, conflictStrategy });
 
-            alert("Plano de treino importado com sucesso!");
-            navigateTo({ page: 'workouts' });
+            alert("Importação concluída com sucesso!");
+            navigateTo({ page: 'home' }); // Navegar para a home para forçar a recarga dos dados
 
         } catch (error) {
             console.error("Erro ao importar o arquivo:", error);
@@ -137,24 +173,73 @@ export default function ImportPage() {
     };
 
     return (
-        <div className="animate-fade-in max-w-xl mx-auto">
-            <div className="bg-gray-800 p-6 rounded-xl shadow-lg text-center">
-                <UploadCloud size={48} className="mx-auto text-blue-400 mb-4" />
-                <h1 className="text-2xl font-semibold text-white mb-2">Importar Plano de Treino</h1>
-                <p className="text-gray-400 mb-6">
-                    Faça o upload de um arquivo JSON (.json) com a estrutura de treinos, exercícios e medidas para configurar seu perfil automaticamente.
-                </p>
-                <label className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-green-700 transition-colors shadow">
-                    {isImporting ? 'A importar...' : 'Selecionar Arquivo'}
-                    <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".json" 
-                        onChange={handleFileImport}
-                        disabled={isImporting}
-                    />
-                </label>
+        <>
+            <LoadingOverlay isActive={isImporting} message="A importar dados..." />
+            <div className="animate-fade-in max-w-xl mx-auto space-y-6">
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg text-center">
+                    <UploadCloud size={48} className="mx-auto text-blue-400 mb-4" />
+                    <h1 className="text-2xl font-semibold text-white mb-2">Importar Plano de Treino</h1>
+                    <p className="text-gray-400 mb-6">
+                        Faça o upload de um arquivo JSON para configurar seu perfil. Escolha as opções de importação abaixo.
+                    </p>
+                    <label className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-green-700 transition-colors shadow cursor-pointer">
+                        {'Selecionar Arquivo'}
+                        <input 
+                            type="file" 
+                            className="hidden" 
+                            accept=".json" 
+                            onChange={handleFileImport}
+                            disabled={isImporting}
+                        />
+                    </label>
+                </div>
+                
+                {/* --- NOVOS CONTROLES DE OPÇÕES --- */}
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg space-y-6">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2"><DatabaseZap size={20} className="text-blue-400"/>Opções de Importação</h3>
+                        <div className="flex items-center justify-between mt-4 bg-gray-700 p-3 rounded-lg">
+                            <label htmlFor="clear-db" className="font-medium text-gray-200">Limpar dados antes de importar?</label>
+                            <button
+                                id="clear-db"
+                                role="switch"
+                                aria-checked={clearDatabase}
+                                onClick={() => setClearDatabase(!clearDatabase)}
+                                className={`${
+                                    clearDatabase ? 'bg-red-600' : 'bg-gray-600'
+                                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                            >
+                                <span
+                                    className={`${
+                                    clearDatabase ? 'translate-x-6' : 'translate-x-1'
+                                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                                />
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Atenção: Esta ação removerá permanentemente todos os seus treinos, exercícios e grupos musculares atuais antes da importação. Esta ação não pode ser desfeita.</p>
+                    </div>
+
+                    <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2"><FileEdit size={20} className="text-blue-400"/>Conflito de Nomes de Treino</h3>
+                        <div className="mt-4 space-y-2">
+                             <label className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${conflictStrategy === 'overwrite' ? 'bg-blue-600/30 border border-blue-500' : 'bg-gray-700'}`} >
+                                <input type="radio" name="conflict" value="overwrite" checked={conflictStrategy === 'overwrite'} onChange={(e) => setConflictStrategy(e.target.value)} className="hidden" />
+                                <div>
+                                    <p className="font-semibold">Sobrescrever</p>
+                                    <p className="text-sm text-gray-400">Se um treino com o mesmo nome já existe, ele será substituído pelo do arquivo.</p>
+                                </div>
+                            </label>
+                            <label className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${conflictStrategy === 'skip' ? 'bg-blue-600/30 border border-blue-500' : 'bg-gray-700'}`} >
+                                <input type="radio" name="conflict" value="skip" checked={conflictStrategy === 'skip'} onChange={(e) => setConflictStrategy(e.target.value)} className="hidden"/>
+                                <div>
+                                    <p className="font-semibold">Ignorar</p>
+                                    <p className="text-sm text-gray-400">Se um treino com o mesmo nome já existe, ele será mantido e o do arquivo não será importado.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
