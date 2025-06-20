@@ -3,12 +3,14 @@ import { Dumbbell, AlertTriangle } from 'lucide-react';
 import { InputField } from '../../components/ui/InputField';
 import { GlobalStyles } from '../../components/ui/GlobalStyles';
 import { APP_VERSION } from '../../constants/initialData'; //
-import { auth } from '../../firebase/config';
+import { auth, db } from '../../firebase/config';
 import { 
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword,
     sendPasswordResetEmail 
 } from "firebase/auth";
+import { collection, doc, writeBatch } from "firebase/firestore"; 
+import { initialData } from '../../constants/initialData';
 import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
 
 const getFriendlyErrorMessage = (error) => {
@@ -26,6 +28,48 @@ const getFriendlyErrorMessage = (error) => {
         default:
             console.error("Firebase Auth Error:", error);
             return 'Ocorreu um erro inesperado. Tente novamente mais tarde.';
+    }
+};
+
+const createInitialUserData = async (userId) => {
+    try {
+        const batch = writeBatch(db);
+
+        // Criar o perfil inicial
+        const profileRef = doc(db, 'users', userId, 'profile', 'data');
+        batch.set(profileRef, initialData.profile);
+
+        // Criar mapa para guardar IDs dos grupos
+        const groupMap = new Map();
+        initialData.muscleGroups.forEach(group => {
+            const groupRef = doc(collection(db, 'users', userId, 'muscleGroups'));
+            batch.set(groupRef, group);
+            groupMap.set(group.name.toLowerCase(), groupRef.id);
+        });
+        
+        // Criar os exercícios, associando os IDs
+        initialData.exercises.forEach(exercise => {
+            const exerciseRef = doc(collection(db, 'users', userId, 'exercises'));
+            const muscleGroupId = groupMap.get(exercise.muscleGroupName.toLowerCase()) || null;
+            
+            const secondaryMuscleGroupIds = (exercise.secondaryMuscleGroupNames || [])
+                .map(name => groupMap.get(name.toLowerCase()))
+                .filter(Boolean);
+
+            const { muscleGroupName, secondaryMuscleGroupNames, ...restOfExercise } = exercise;
+            
+            batch.set(exerciseRef, { 
+                ...restOfExercise, 
+                muscleGroupId,
+                secondaryMuscleGroupIds
+            });
+        });
+
+        await batch.commit();
+        console.log("Base de dados inicial criada para o novo usuário!");
+
+    } catch (error) {
+        console.error("Erro ao criar dados iniciais do usuário:", error);
     }
 };
 
@@ -50,7 +94,9 @@ export function LoginPage() {
             if (isLoginView) {
                 await signInWithEmailAndPassword(auth, email, password);
             } else {
-                await createUserWithEmailAndPassword(auth, email, password);
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await createInitialUserData(user.uid);
             }
         } catch (err) {
             setError(getFriendlyErrorMessage(err));

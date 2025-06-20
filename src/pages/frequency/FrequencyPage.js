@@ -77,7 +77,7 @@ export function FrequencyPage() {
 
     return (
         // --- (ALTERADO) Container principal agora centraliza e limita a largura máxima ---
-        <div className="animate-fade-in max-w-7xl mx-auto space-y-8">
+        <div className="animate-fade-in max-w-7xl mx-auto space-y-8 mb-8">
             
             {/* --- (NOVO) Grid para layout responsivo (2 colunas no desktop) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

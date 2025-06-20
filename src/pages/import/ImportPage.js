@@ -243,7 +243,7 @@ export default function ImportPage() {
     return (
         <>
             <LoadingOverlay isActive={isImporting} message="A importar dados..." />
-            <div className="animate-fade-in max-w-xl mx-auto space-y-6">
+            <div className="animate-fade-in max-w-xl mx-auto space-y-6 mb-8">
                 <div className="bg-gray-800 p-6 rounded-xl shadow-lg space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                         <HelpCircle size={20} className="text-blue-400"/>
