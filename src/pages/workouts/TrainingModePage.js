@@ -13,6 +13,36 @@ function RestTimer({ duration, onFinish }) {
     const [timeLeft, setTimeLeft] = useState(duration);
     const audioRef = useRef(null);
     const timerId = useRef(null);
+    const wakeLockRef = useRef(null); 
+
+    useEffect(() => {
+        const acquireWakeLock = async () => {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLockRef.current = await navigator.wakeLock.request('screen');
+                    console.log('Tela mantida ativa durante o descanso.');
+                } catch (err) {
+                    console.error(`Falha ao ativar o bloqueio de tela: ${err.name}, ${err.message}`);
+                }
+            } else {
+                console.warn('API Wake Lock não é suportada neste navegador.');
+            }
+        };
+
+        const releaseWakeLock = async () => {
+            if (wakeLockRef.current) {
+                await wakeLockRef.current.release();
+                wakeLockRef.current = null;
+                console.log('Bloqueio de tela liberado.');
+            }
+        };
+
+        acquireWakeLock();
+
+        return () => {
+            releaseWakeLock(); 
+        };
+    }, []);
 
     useEffect(() => {
         setTimeLeft(duration);
@@ -185,7 +215,6 @@ export default function TrainingModePage() {
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [timerState, setTimerState] = useState({ isRunning: false, duration: 60 });
-    // --- (NOVO) Estado para controlar o loading ao finalizar ---
     const [isFinishing, setIsFinishing] = useState(false);
 
     const [historyModalExercise, setHistoryModalExercise] = useState(null)
@@ -199,7 +228,6 @@ export default function TrainingModePage() {
             Notification.requestPermission();
         }
     }, [workout, activeSession]);
-
     
     const handleSetComplete = (restDuration, workoutExerciseId) => {
         setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
@@ -223,7 +251,6 @@ export default function TrainingModePage() {
     };
     
     const finishWorkout = async () => {
-        // --- (ALTERADO) Ativa o loading ---
         setIsFinishing(true);
         const completionDate = new Date().toISOString();
         
@@ -251,7 +278,6 @@ export default function TrainingModePage() {
             console.error("Erro ao finalizar o treino:", error);
             alert("Ocorreu um erro ao salvar o seu progresso. Tente novamente.");
         } finally {
-            // --- (ALTERADO) Desativa o loading, ocorrendo sucesso ou falha ---
             setIsFinishing(false);
         }
     };
@@ -282,7 +308,6 @@ export default function TrainingModePage() {
 
     return (
         <>
-            {/* --- (NOVO) LoadingOverlay renderizado aqui --- */}
             <LoadingOverlay isActive={isFinishing} message="A guardar o seu progresso..." />
 
             {timerState.isRunning && <RestTimer duration={timerState.duration} onFinish={handleTimerFinish} />}
@@ -324,7 +349,6 @@ export default function TrainingModePage() {
                     <X size={20}/>
                     <span>Cancelar</span>
                 </button>
-                {/* --- (ALTERADO) Botão é desativado durante o loading --- */}
                 <button onClick={finishWorkout} disabled={isFinishing} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-green-700 transition-colors shadow disabled:opacity-50 disabled:cursor-not-allowed">
                     <StopCircle size={20}/>
                     <span>Finalizar</span>
