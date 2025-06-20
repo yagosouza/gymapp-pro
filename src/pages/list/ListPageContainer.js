@@ -73,7 +73,7 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest, onShowVideo, onShow
                         <p className="font-bold text-lg">{item.name}</p>
                         {itemType === 'exercises' && (
                             <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <span className="text-sm font-semibold text-white bg-blue-600 px-2 py-1 rounded-full">{getGroupName(item.muscleGroupId)}</span>
+                                {item.muscleGroupId && <span className="text-sm font-semibold text-white bg-blue-600 px-2 py-1 rounded-full">{getGroupName(item.muscleGroupId)}</span>}
                                 {item.secondaryMuscleGroupIds?.map(id => (<span key={id} className="text-xs font-semibold text-gray-300 bg-gray-600 px-2 py-1 rounded-full">{getGroupName(id)}</span>))}
                             </div>
                         )}
@@ -104,7 +104,12 @@ export default function ListPageContainer({ pageTitle, itemType }) {
 
     const handleDelete = async (id) => {
         if (itemType === 'groups') {
-            // ... (lógica de verificação existente) ...
+            const isGroupInUse = exercises.some(ex => ex.muscleGroupId === id || ex.secondaryMuscleGroupIds?.includes(id));
+            if (isGroupInUse) {
+                alert('Este grupo muscular está a ser utilizado por um ou mais exercícios e não pode ser apagado.');
+                setItemToDelete(null);
+                return;
+            }
             await muscleGroupsAPI.delete(id);
         } else {
             await exercisesAPI.delete(id);
@@ -118,16 +123,21 @@ export default function ListPageContainer({ pageTitle, itemType }) {
         if (itemType !== 'exercises') {
             return item.name.toLowerCase().includes(searchTerm.toLowerCase());
         }
+        
+        // Lógica para busca por texto
         const searchTermLower = searchTerm.toLowerCase();
         const nameMatch = item.name.toLowerCase().includes(searchTermLower);
         const primaryGroupName = getGroupName(item.muscleGroupId).toLowerCase();
         const searchInPrimary = primaryGroupName.includes(searchTermLower);
         const secondaryGroupNames = (item.secondaryMuscleGroupIds || []).map(id => getGroupName(id).toLowerCase());
         const searchInSecondary = secondaryGroupNames.some(name => name.includes(searchTermLower));
-        const primaryGroupMatch = !primaryFilterGroup || item.muscleGroupId === parseInt(primaryFilterGroup);
-        const secondaryGroupMatch = !secondaryFilterGroup || (item.secondaryMuscleGroupIds && item.secondaryMuscleGroupIds.includes(parseInt(secondaryFilterGroup)));
+        const textMatch = nameMatch || searchInPrimary || searchInSecondary;
 
-        return (nameMatch || searchInPrimary || searchInSecondary) && primaryGroupMatch && secondaryGroupMatch;
+        // --- LÓGICA DE FILTRO CORRIGIDA ---
+        const primaryGroupMatch = !primaryFilterGroup || item.muscleGroupId === primaryFilterGroup;
+        const secondaryGroupMatch = !secondaryFilterGroup || (item.secondaryMuscleGroupIds && item.secondaryMuscleGroupIds.includes(secondaryFilterGroup));
+
+        return textMatch && primaryGroupMatch && secondaryGroupMatch;
     });
 
     return (
@@ -166,9 +176,14 @@ export default function ListPageContainer({ pageTitle, itemType }) {
                         onShowHistory={() => setHistoryModalExercise(item)}
                     />
                 ))}
+                 {filteredItems.length === 0 && (
+                    <div className="text-center py-10">
+                        <p className="text-gray-400">Nenhum item encontrado.</p>
+                        <p className="text-sm text-gray-500 mt-1">Tente ajustar a sua busca ou filtros.</p>
+                    </div>
+                )}
             </div>
         </div>
         </>
     );
 }
-

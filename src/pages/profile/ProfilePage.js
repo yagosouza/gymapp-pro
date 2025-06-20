@@ -1,17 +1,17 @@
-import React, { useState, useMemo } from 'react'; // Adicionado useMemo
+import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { calculateBMI, calculateBodyFat } from '../../utils/calculations';
-// --- (NOVO) Ícones adicionados para a nova funcionalidade ---
-import { Edit, Save, Trash2, Info, PlusCircle, ArrowUpCircle, ArrowDownCircle, ChevronDown, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Save, Trash2, Info, PlusCircle, ArrowUpCircle, ArrowDownCircle, ChevronDown, SlidersHorizontal, ArrowUp, ArrowDown, Database, PlusSquare } from 'lucide-react';
 import { InputField } from '../../components/ui/InputField';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InfoModal } from '../../components/modals/InfoModal';
-// --- (NOVO) Importar a base do Modal para a nova funcionalidade ---
 import { ModalBase } from '../../components/modals/ModalBase';
+import { LoadingOverlay } from '../../components/ui/LoadingOverlay';
+import { initialData } from '../../constants/initialData';
+import { db, auth } from '../../firebase/config';
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 
-
-// --- (NOVO) Lista Mestra de todos os atalhos possíveis ---
 const ALL_SHORTCUT_ITEMS = [
     { id: 'workouts', title: 'Treinos' },
     { id: 'exercises', title: 'Exercícios' },
@@ -29,11 +29,12 @@ export function ProfilePage() {
     const [historyTab, setHistoryTab] = useState('circumferences');
     const [infoModalContent, setInfoModalContent] = useState(null);
     const [recordToDelete, setRecordToDelete] = useState(null);
-
-    // --- (NOVO) Estados para o modal de edição de atalhos ---
     const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-    // Inicializa com os atalhos salvos ou com um padrão
     const [editedShortcuts, setEditedShortcuts] = useState(profile.homeShortcuts || ['workouts', 'exercises', 'bmi', 'bodyFat']);
+    
+    // --- NOVOS ESTADOS PARA A FUNCIONALIDADE DE MESCLAGEM ---
+    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+    const [isMerging, setIsMerging] = useState(false);
 
 
     const circumferenceLabels = { shoulder: 'Ombro (cm)', chest: 'Peitoral (cm)', waist: 'Cintura (cm)', abdomen: 'Abdómen (cm)', hip: 'Anca (cm)', calfR: 'Pant. Dir. (cm)', calfL: 'Pant. Esq. (cm)', thighR: 'Coxa Dir. (cm)', thighL: 'Coxa Esq. (cm)', armRelaxedR: 'Braço Rel. Dir. (cm)', armRelaxedL: 'Braço Rel. Esq. (cm)', armContractedR: 'Braço Cont. Dir. (cm)', armContractedL: 'Braço Cont. Esq. (cm)' };
@@ -91,7 +92,6 @@ export function ProfilePage() {
         }
     };
 
-    // --- (NOVO) Funções para manipular os atalhos no modal ---
     const handleRemoveShortcut = (idToRemove) => {
         setEditedShortcuts(editedShortcuts.filter(id => id !== idToRemove));
     };
@@ -106,7 +106,7 @@ export function ProfilePage() {
         const newIndex = index + direction;
         if (newIndex < 0 || newIndex >= editedShortcuts.length) return;
         const newList = [...editedShortcuts];
-        [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]]; // Troca as posições
+        [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
         setEditedShortcuts(newList);
     };
 
@@ -115,7 +115,79 @@ export function ProfilePage() {
         setIsShortcutsModalOpen(false);
     };
 
-    // --- (NOVO) Memoiza as listas de atalhos disponíveis e visíveis ---
+    const mergeInitialData = async () => {
+        setIsMerging(true);
+        try {
+            const userId = auth.currentUser.uid;
+            if (!userId) throw new Error("Usuário não autenticado.");
+
+            const batch = writeBatch(db);
+
+            // 1. Mesclar Grupos Musculares e criar um mapa de IDs
+            const existingGroups = new Map();
+            const groupsSnap = await getDocs(collection(db, 'users', userId, 'muscleGroups'));
+            groupsSnap.forEach(doc => {
+                existingGroups.set(doc.data().name.toLowerCase(), doc.id);
+            });
+
+            const finalGroupMap = new Map(existingGroups);
+            for (const initialGroup of initialData.muscleGroups) {
+                if (!finalGroupMap.has(initialGroup.name.toLowerCase())) {
+                    const newGroupRef = doc(collection(db, 'users', userId, 'muscleGroups'));
+                    batch.set(newGroupRef, initialGroup);
+                    finalGroupMap.set(initialGroup.name.toLowerCase(), newGroupRef.id);
+                }
+            }
+
+            // 2. Mesclar Exercícios
+            const existingExercises = new Set();
+            const exercisesSnap = await getDocs(collection(db, 'users', userId, 'exercises'));
+            exercisesSnap.forEach(doc => {
+                existingExercises.add(doc.data().name.toLowerCase());
+            });
+
+            for (const initialExercise of initialData.exercises) {
+                if (!existingExercises.has(initialExercise.name.toLowerCase())) {
+                    const muscleGroupId = finalGroupMap.get(initialExercise.muscleGroupName.toLowerCase()) || null;
+                    if (!muscleGroupId) {
+                        console.warn(`Grupo muscular "${initialExercise.muscleGroupName}" não encontrado para o exercício "${initialExercise.name}". Pulando.`);
+                        continue;
+                    }
+                    
+                    // Converte os nomes dos grupos secundários para seus respectivos IDs
+                    const secondaryMuscleGroupIds = (initialExercise.secondaryMuscleGroupNames || [])
+                        .map(name => finalGroupMap.get(name.toLowerCase()))
+                        .filter(Boolean); // Filtra qualquer nome não encontrado
+
+                    const newExerciseRef = doc(collection(db, 'users', userId, 'exercises'));
+                    
+                    // Remove os campos de nome de grupo antes de salvar no DB
+                    const { muscleGroupName, secondaryMuscleGroupNames, ...restOfExercise } = initialExercise;
+                    
+                    batch.set(newExerciseRef, { 
+                        ...restOfExercise, 
+                        muscleGroupId,
+                        secondaryMuscleGroupIds // Salva o array de IDs
+                    });
+                }
+            }
+            
+            await batch.commit();
+            alert("Exercícios e grupos musculares padrão foram adicionados com sucesso!");
+
+        } catch (error) {
+            console.error("Erro ao adicionar dados padrão:", error);
+            alert("Ocorreu um erro ao adicionar os dados. Tente novamente.");
+        } finally {
+            setIsMerging(false);
+        }
+    };
+    
+    const handleMergeConfirm = async () => {
+        setIsMergeModalOpen(false);
+        await mergeInitialData();
+    };
+
     const { visibleShortcuts, availableShortcuts } = useMemo(() => {
         const visible = editedShortcuts.map(id => ALL_SHORTCUT_ITEMS.find(item => item.id === id)).filter(Boolean);
         const available = ALL_SHORTCUT_ITEMS.filter(item => !editedShortcuts.includes(item.id));
@@ -150,10 +222,24 @@ export function ProfilePage() {
 
     return (
         <>  
+            <LoadingOverlay isActive={isMerging} message="Adicionando dados padrão..." />
+            <ConfirmationModal 
+                isOpen={isMergeModalOpen} 
+                onClose={() => setIsMergeModalOpen(false)} 
+                onConfirm={handleMergeConfirm} 
+                title="Adicionar Base de Dados Padrão"
+            >
+                <p>
+                    Esta ação irá adicionar os exercícios e grupos musculares padrão do aplicativo à sua conta.
+                </p>
+                <p className="font-bold mt-2 text-yellow-400">
+                    Nenhum dado que você já criou será alterado ou apagado. Deseja continuar?
+                </p>
+            </ConfirmationModal>
+
             <InfoModal isOpen={!!infoModalContent} onClose={() => setInfoModalContent(null)} title={infoModalContent?.title}><p>{infoModalContent?.content}</p></InfoModal>
             <ConfirmationModal isOpen={!!recordToDelete} onClose={() => setRecordToDelete(null)} onConfirm={() => handleDeleteRecord(recordToDelete)} title="Apagar Registo"><p>Tem a certeza que quer apagar este registo? Esta ação não pode ser desfeita.</p></ConfirmationModal>
             
-            {/* --- (NOVO) Modal para Editar Atalhos --- */}
             {isShortcutsModalOpen && (
                 <ModalBase onClose={() => setIsShortcutsModalOpen(false)} title="Personalizar Atalhos da Home">
                     <div className="space-y-6">
@@ -192,8 +278,8 @@ export function ProfilePage() {
                 </ModalBase>
             )}
 
-            <div className="animate-fade-in">   
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+            <div className="animate-fade-in space-y-8">   
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-semibold text-blue-400">Informações Pessoais</h2>
                         {isEditing ? <button onClick={saveProfileInfo} className="btn-primary"><Save size={18}/> Salvar</button> : <button onClick={() => setIsEditing(true)} className="btn-secondary"><Edit size={18}/> Editar</button>}
@@ -221,17 +307,8 @@ export function ProfilePage() {
                         </div>
                     )}
                 </div>
-
-                 {/* --- (NOVO) Card de Configurações com o botão para abrir o modal --- */}
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
-                    <h2 className="text-2xl font-semibold text-blue-400 mb-4">Configurações</h2>
-                    <button onClick={() => setIsShortcutsModalOpen(true)} className="w-full btn-secondary flex items-center justify-center gap-2">
-                        <SlidersHorizontal size={20}/>
-                        Personalizar Atalhos da Página Inicial
-                    </button>
-                </div>
                 
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                     <button onClick={() => setIsAddingRecord(!isAddingRecord)} className="w-full flex justify-between items-center text-left">
                         <div>
                             <h2 className="text-2xl font-semibold text-blue-400">Registo de Medidas</h2>
@@ -302,6 +379,28 @@ export function ProfilePage() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+                    <h2 className="text-2xl font-semibold text-blue-400 mb-4">Configurações</h2>
+                    <button onClick={() => setIsShortcutsModalOpen(true)} className="w-full btn-secondary flex items-center justify-center gap-2">
+                        <SlidersHorizontal size={20}/>
+                        Personalizar Atalhos da Página Inicial
+                    </button>
+                </div>
+
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h2 className="text-2xl font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                        <Database size={22} />
+                        Base de Dados
+                    </h2>
+                    <p className="text-sm text-gray-400 mb-4">
+                        Se você é um usuário antigo ou apagou os exercícios padrão, pode adicioná-los novamente aqui. Apenas itens que não existem na sua conta serão adicionados.
+                    </p>
+                    <button onClick={() => setIsMergeModalOpen(true)} className="w-full btn-secondary flex items-center justify-center gap-2">
+                        <PlusSquare size={20}/>
+                        Adicionar Exercícios e Grupos Padrão
+                    </button>
                 </div>
             </div>
         </>
