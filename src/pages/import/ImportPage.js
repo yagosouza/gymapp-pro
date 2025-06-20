@@ -19,8 +19,8 @@ Regras de Execução:
 2.  Mapeamento de Dados: Mapeie cuidadosamente as informações dos PDFs para os campos correspondentes na estrutura JSON.
 3.  Cadastro de Exercícios Substitutos: Se um exercício for mencionado em "substituteExerciseNames" dentro de um treino, certifique-se de que ele também exista na lista principal de "exercises" do JSON. Se não existir, adicione-o à lista "exercises" com pelo menos o campo "name".
 4.  Pesquisa de Mídia: Para cada exercício na lista principal "exercises", pesquise na internet, **priorizando resultados em português do Brasil (pt-BR)**, por:
+    - "videoUrl": Um link completo e público do YouTube. **Dê preferência a vídeos no formato "Shorts"**, pois são mais diretos. Contudo, se um vídeo normal de alta qualidade for uma demonstração melhor, pode usá-lo. Verifique se o vídeo é acessível globalmente.
     - "imageUrl": Um link DIRETO para uma imagem ou GIF (terminando em .gif, .jpg, .png, etc.). Evite links de páginas web; o link deve ser da própria imagem. Exemplo de link válido: https://media.tenor.com/cy46UbnfUrkAAAAM/eleva%C3%A7%C3%A3o-lateral-hateres.gif
-    - "videoUrl": Um link completo e público do YouTube (ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ). Verifique se o vídeo é acessível globalmente.
     - Se não encontrar um link válido, deixe o campo como uma string vazia ("").
 5.  Dados Ausentes: Se um campo do JSON não tiver uma informação correspondente no PDF, preencha-o com uma string vazia (""), a menos que o modelo sugira outro padrão (como null ou um array vazio []).
 6.  Formatação de Dados: Preste muita atenção à formatação para garantir a validade do JSON:
