@@ -14,7 +14,13 @@
     {
       "name": "Supino Reto com Barra",
       "muscleGroupName": "Peito",
-      "secondaryMuscleGroupNames": ["Ombros", "Tríceps"]
+      "secondaryMuscleGroupNames": ["Ombros", "Tríceps"],
+      "imageUrl": "https://www.mundoboaforma.com.br/wp-content/uploads/2020/12/desenvolvimento-para-ombros-com-halteres.gif",
+      "suggestedReps": "12",
+      "suggestedRest": "40",
+      "suggestedSets": "3",
+      "suggestedWeight": "20",
+      "videoUrl": "https://www.youtube.com/watch?v=eufDL9MmF8A&t=2s"
     },
     {
       "name": "Supino Inclinado com Halteres",
