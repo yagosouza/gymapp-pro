@@ -86,7 +86,14 @@ export const AppProvider = ({ children, userId }) => {
                         console.error("Erro ao criar perfil inicial no Firestore:", error);
                     });
                 }
-            }, () => showError('Erro ao carregar perfil.')),
+            }, (error) => {
+                console.error("Erro ao carregar perfil:", error);
+                showError('Erro ao carregar perfil. Verifique a ligação.');
+                setProfile({
+                    name: auth.currentUser?.displayName || auth.currentUser?.email || 'Utilizador',
+                    height: '', age: '', gender: 'male', measurementHistory: []
+                });
+            }),
         ];
 
         return () => unsubscribers.forEach(unsub => unsub());

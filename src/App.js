@@ -38,7 +38,7 @@ export default function App() {
                 path="/*"
                 element={
                     <ProtectedRoute user={user}>
-                        <AppProvider userId={user.uid}>
+                        <AppProvider userId={user?.uid}>
                             <GymApp />
                         </AppProvider>
                     </ProtectedRoute>
