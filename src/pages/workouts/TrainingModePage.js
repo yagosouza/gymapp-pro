@@ -214,14 +214,6 @@ export default function TrainingModePage() {
     const navigate = useNavigate();
     const { workouts, exercises, activeSession, history, setActiveSession, historyAPI, workoutsAPI } = useAppContext();
     const { showError } = useToast();
-
-    // Guard: se não há sessão ativa, redireciona para lista de treinos
-    if (!activeSession) {
-        navigate('/workouts', { replace: true });
-        return null;
-    }
-
-    const workout = workouts.find(w => w.id === activeSession.workoutId);
     
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -234,12 +226,26 @@ export default function TrainingModePage() {
     const [substituteModalInfo, setSubstituteModalInfo] = useState(null);
 
     useEffect(() => {
-        setTimeout(() => window.scrollTo(0, 0), 50);
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
+        if (!activeSession) {
+            navigate('/workouts', { replace: true });
         }
-    }, [workout, activeSession]);
+    }, [activeSession, navigate]);
+
+    useEffect(() => {
+        if (activeSession) {
+            setTimeout(() => window.scrollTo(0, 0), 50);
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+    }, [activeSession]);
+
+    if (!activeSession) {
+        return null; 
+    }
     
+    const workout = workouts.find(w => w.id === activeSession.workoutId);
+
     const handleSetComplete = (restDuration, workoutExerciseId) => {
         setTimerState({ isRunning: true, duration: Number(restDuration) || 60 });
         const log = activeSession.logs[workoutExerciseId];
