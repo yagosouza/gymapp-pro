@@ -1,17 +1,19 @@
 import React, { useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { calculateBMI, calculateBodyFat } from '../utils/calculations';
 import { ClipboardList, Dumbbell, CheckCircle, ExternalLink, Activity, BarChart3, Percent } from 'lucide-react';
 
 const ALL_SHORTCUT_ITEMS = [
-    { id: 'workouts', title: 'Treinos', Icon: ClipboardList, navigateToConfig: { page: 'workouts' } },
-    { id: 'exercises', title: 'Exercícios', Icon: Dumbbell, navigateToConfig: { page: 'exercises' } },
-    { id: 'bmi', title: 'IMC', Icon: BarChart3, navigateToConfig: { page: 'profile' } },
-    { id: 'bodyFat', title: 'Gordura', Icon: Percent, navigateToConfig: { page: 'profile' } }
+    { id: 'workouts', title: 'Treinos', Icon: ClipboardList, path: '/workouts' },
+    { id: 'exercises', title: 'Exercícios', Icon: Dumbbell, path: '/exercises' },
+    { id: 'bmi', title: 'IMC', Icon: BarChart3, path: '/profile' },
+    { id: 'bodyFat', title: 'Gordura', Icon: Percent, path: '/profile' }
 ];
 
 export function HomePage() {
-    const { workouts, exercises, profile, history, navigateTo } = useAppContext();
+    const navigate = useNavigate();
+    const { workouts, exercises, profile, history } = useAppContext();
     
     // --- 1. Os cálculos permanecem os mesmos ---
     const lastWorkout = workouts.filter(w => w.lastCompleted).sort((a,b) => new Date(b.lastCompleted) - new Date(a.lastCompleted))[0];
@@ -27,13 +29,13 @@ export function HomePage() {
         // Usa a lista do perfil ou uma lista padrão com 4 itens
         const shortcutIds = profile.homeShortcuts || ['workouts', 'exercises', 'bmi', 'bodyFat'];
 
-        return shortcutIds.map(id => {
-            const item = ALL_SHORTCUT_ITEMS.find(sc => sc.id === id);
+        return shortcutIds.map(shortcutId => {
+            const item = ALL_SHORTCUT_ITEMS.find(sc => sc.id === shortcutId);
             if (!item) return null;
 
             // Adiciona o valor dinâmico a cada atalho
             let value;
-            switch (id) {
+            switch (shortcutId) {
                 case 'workouts': value = workouts.length; break;
                 case 'exercises': value = exercises.length; break;
                 case 'bmi': value = bmi > 0 ? bmi.toFixed(1) : 'N/A'; break;
@@ -70,9 +72,9 @@ export function HomePage() {
             
             <div className="grid grid-cols-2 gap-4">
                 {shortcutItems.map(item => (
-                    <div 
+                    <div
                         key={item.id}
-                        onClick={() => navigateTo(item.navigateToConfig)} 
+                        onClick={() => navigate(item.path)}
                         className="bg-gray-800 p-4 rounded-xl shadow-lg cursor-pointer hover:bg-gray-700 transition-colors"
                     >
                         <h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-2">
@@ -83,8 +85,8 @@ export function HomePage() {
                     </div>
                 ))}
 
-                <div 
-                    onClick={() => navigateTo({ page: 'frequency' })}
+                <div
+                    onClick={() => navigate('/frequency')}
                     className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2 cursor-pointer hover:bg-gray-700/50 transition-colors">
                     <h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2 mb-4"><Activity size={20}/> Frequência Semanal</h2>
                     <div className="flex justify-around">
@@ -103,7 +105,7 @@ export function HomePage() {
                     </div>
                 </div>
                 
-                <div onClick={() => navigateTo({page: 'workouts'})} className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2 cursor-pointer hover:bg-gray-700 transition-colors">
+                <div onClick={() => navigate('/workouts')} className="bg-gray-800 p-6 rounded-xl shadow-lg col-span-2 cursor-pointer hover:bg-gray-700 transition-colors">
                     <div className="flex justify-between items-center"><h2 className="text-lg font-semibold text-blue-400 flex items-center gap-2"><CheckCircle size={20}/> Último Treino</h2><ExternalLink size={20} className="text-gray-500"/></div>
                     {lastWorkout ? (<div className="mt-2"><p className="font-bold text-white">{lastWorkout.name}</p><p className="text-gray-400 text-sm">{new Date(lastWorkout.lastCompleted).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p></div>) : <p className="text-gray-400 mt-2 text-sm">Nenhum treino concluído ainda. Clique para ver os treinos.</p>}
                 </div>

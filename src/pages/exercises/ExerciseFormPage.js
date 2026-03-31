@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Save, X, Youtube, ImageIcon, ChevronDown } from 'lucide-react';
 import { InputField } from '../../components/ui/InputField';
 import { CustomSelect } from '../../components/ui/CustomSelect';
@@ -7,15 +9,19 @@ import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
 import ImageModal from '../../components/modals/ImageModal';
 
 export function ExerciseFormPage() {
-    const { exercises, currentView, navigateTo, muscleGroups, exercisesAPI } = useAppContext();
-    const exercise = currentView.mode === 'edit' ? exercises.find(ex => ex.id === currentView.id) : null;
-    
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { exercises, muscleGroups, exercisesAPI } = useAppContext();
+    const { showError } = useToast();
+
+    const exercise = id ? exercises.find(ex => ex.id === id) : null;
+
     const [formState, setFormState] = useState(
-        exercise 
-            ? { ...exercise, secondaryMuscleGroupIds: exercise.secondaryMuscleGroupIds || [] } 
+        exercise
+            ? { ...exercise, secondaryMuscleGroupIds: exercise.secondaryMuscleGroupIds || [] }
             : { name: '', muscleGroupId: '', secondaryMuscleGroupIds: [], suggestedSets: '', suggestedReps: '', suggestedWeight: '', suggestedRest: '60', videoUrl: '', imageUrl: '' }
     );
-    
+
     const [showSecondaryGroups, setShowSecondaryGroups] = useState(!!(exercise?.secondaryMuscleGroupIds?.length > 0));
     const [showSuggestedValues, setShowSuggestedValues] = useState(!!(exercise?.suggestedSets || exercise?.suggestedReps));
     const [showMedia, setShowMedia] = useState(!!(exercise?.imageUrl || exercise?.videoUrl));
@@ -23,43 +29,35 @@ export function ExerciseFormPage() {
     const [imageModalUrl, setImageModalUrl] = useState(null);
 
     const handleInputChange = (e) => setFormState({ ...formState, [e.target.name]: e.target.value });
-    
+
     const handleSecondaryGroupChange = (groupId) => {
         const currentIds = formState.secondaryMuscleGroupIds;
-        const newIds = currentIds.includes(groupId) ? currentIds.filter(id => id !== groupId) : [...currentIds, groupId];
+        const newIds = currentIds.includes(groupId) ? currentIds.filter(i => i !== groupId) : [...currentIds, groupId];
         setFormState({ ...formState, secondaryMuscleGroupIds: newIds });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formState.name || !formState.muscleGroupId) {
-            alert("Por favor, preencha o nome do exercício e o grupo muscular principal.");
+            showError("Preencha o nome do exercício e o grupo muscular principal.");
             return;
         }
 
-        // --- LINHA CORRIGIDA ---
-        // O `parseInt` foi removido. Agora o ID (texto) é salvo corretamente.
-        const finalFormState = { ...formState };
-
         try {
             if (exercise) {
-                // UPDATE
-                await exercisesAPI.update(exercise.id, finalFormState);
+                await exercisesAPI.update(exercise.id, { ...formState });
             } else {
-                // CREATE
-                await exercisesAPI.create(finalFormState);
+                await exercisesAPI.create({ ...formState });
             }
-            navigateTo({ page: 'exercises' });
+            navigate('/exercises');
         } catch (error) {
             console.error("Erro ao salvar exercício: ", error);
-            alert("Não foi possível salvar. Tente novamente.");
+            showError("Não foi possível salvar o exercício. Tente novamente.");
         }
     };
 
-    const onCancel = () => {
-        navigateTo({ page: 'exercises' });
-    }
+    const onCancel = () => navigate('/exercises');
 
     return (
         <>
@@ -71,20 +69,19 @@ export function ExerciseFormPage() {
                         <InputField label="Nome do Exercício" name="name" value={formState.name} onChange={handleInputChange} required />
                         <div>
                             <label className="block mb-1 font-medium text-gray-300">Grupo Muscular Principal</label>
-                            <CustomSelect options={muscleGroups} value={formState.muscleGroupId} onChange={(value) => setFormState(p => ({...p, muscleGroupId: value}))} placeholder="Selecione um grupo..."/>
+                            <CustomSelect options={muscleGroups} value={formState.muscleGroupId} onChange={(value) => setFormState(p => ({ ...p, muscleGroupId: value }))} placeholder="Selecione um grupo..." />
                         </div>
-                        
+
                         <div className="border border-gray-700 rounded-lg">
                             <button type="button" onClick={() => setShowSecondaryGroups(!showSecondaryGroups)} className="w-full flex justify-between items-center text-left text-gray-200 p-4 bg-gray-700/50 rounded-t-lg hover:bg-gray-700">
                                 <span className="font-semibold">Grupos Musculares Secundários</span>
                                 <ChevronDown size={20} className={`transition-transform ${showSecondaryGroups ? 'rotate-180' : ''}`} />
                             </button>
-                            
                             {showSecondaryGroups && (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-4 animate-fade-in">
                                     {muscleGroups.filter(g => g.id !== formState.muscleGroupId).map(group => (
                                         <label key={group.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700 cursor-pointer">
-                                            <input type="checkbox" checked={formState.secondaryMuscleGroupIds.includes(group.id)} onChange={() => handleSecondaryGroupChange(group.id)} className="form-checkbox h-5 w-5 bg-gray-700 border-gray-600 rounded text-blue-500 focus:ring-blue-500"/>
+                                            <input type="checkbox" checked={formState.secondaryMuscleGroupIds.includes(group.id)} onChange={() => handleSecondaryGroupChange(group.id)} className="form-checkbox h-5 w-5 bg-gray-700 border-gray-600 rounded text-blue-500 focus:ring-blue-500" />
                                             <span className="text-sm">{group.name}</span>
                                         </label>
                                     ))}
@@ -100,10 +97,10 @@ export function ExerciseFormPage() {
                         </button>
                         {showSuggestedValues && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in pt-4">
-                                <InputField label="Séries" name="suggestedSets" type="number" value={formState.suggestedSets} onChange={handleInputChange}/>
-                                <InputField label="Reps" name="suggestedReps" type="number" value={formState.suggestedReps} onChange={handleInputChange}/>
-                                <InputField label="Peso (kg)" name="suggestedWeight" type="number" value={formState.suggestedWeight} onChange={handleInputChange}/>
-                                <InputField label="Descanso (s)" name="suggestedRest" type="number" value={formState.suggestedRest} onChange={handleInputChange}/>
+                                <InputField label="Séries" name="suggestedSets" type="number" value={formState.suggestedSets} onChange={handleInputChange} />
+                                <InputField label="Reps" name="suggestedReps" type="number" value={formState.suggestedReps} onChange={handleInputChange} />
+                                <InputField label="Peso (kg)" name="suggestedWeight" type="number" value={formState.suggestedWeight} onChange={handleInputChange} />
+                                <InputField label="Descanso (s)" name="suggestedRest" type="number" value={formState.suggestedRest} onChange={handleInputChange} />
                             </div>
                         )}
                     </div>
@@ -116,11 +113,11 @@ export function ExerciseFormPage() {
                         {showMedia && (
                             <div className="space-y-4 animate-fade-in pt-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-grow"><InputField label="URL da Imagem" name="imageUrl" value={formState.imageUrl} onChange={handleInputChange}/></div>
+                                    <div className="flex-grow"><InputField label="URL da Imagem" name="imageUrl" value={formState.imageUrl} onChange={handleInputChange} /></div>
                                     <button type="button" onClick={() => formState.imageUrl && setImageModalUrl(formState.imageUrl)} className="btn-icon self-end" disabled={!formState.imageUrl}><ImageIcon /></button>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-grow"><InputField label="URL do Vídeo (YouTube)" name="videoUrl" value={formState.videoUrl} onChange={handleInputChange}/></div>
+                                    <div className="flex-grow"><InputField label="URL do Vídeo (YouTube)" name="videoUrl" value={formState.videoUrl} onChange={handleInputChange} /></div>
                                     <button type="button" onClick={() => formState.videoUrl && setVideoModalUrl(formState.videoUrl)} className="btn-icon self-end" disabled={!formState.videoUrl}><Youtube /></button>
                                 </div>
                             </div>
@@ -129,16 +126,16 @@ export function ExerciseFormPage() {
 
                     <div className="grid grid-cols-2 gap-4 pt-4">
                         <button type="button" onClick={onCancel} className="w-full flex items-center justify-center gap-2 text-blue-400 font-semibold py-3 px-5 rounded-lg border-2 border-blue-600 bg-transparent hover:bg-blue-600/20 transition-colors">
-                            <X size={20}/>
+                            <X size={20} />
                             <span>Cancelar</span>
                         </button>
                         <button type="submit" className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-blue-700 transition-colors shadow">
-                            <Save size={20}/>
+                            <Save size={20} />
                             <span>Salvar</span>
                         </button>
                     </div>
                 </form>
             </div>
-        </>  
+        </>
     );
 }

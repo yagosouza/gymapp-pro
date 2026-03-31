@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import { Search, Trash2, Youtube, TrendingUp, Plus } from 'lucide-react';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import YouTubePlayerModal from '../../components/modals/YouTubePlayerModal';
@@ -90,7 +92,9 @@ function ListItem({ item, itemType, onEdit, onDeleteRequest, onShowVideo, onShow
 }
 
 export default function ListPageContainer({ pageTitle, itemType }) {
-    const { exercises, exercisesAPI, muscleGroupsAPI, muscleGroups, history, navigateTo } = useAppContext();
+    const navigate = useNavigate();
+    const { exercises, exercisesAPI, muscleGroupsAPI, muscleGroups, history } = useAppContext();
+    const { showError } = useToast();
     const [itemToDelete, setItemToDelete] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [primaryFilterGroup, setPrimaryFilterGroup] = useState('');
@@ -106,7 +110,7 @@ export default function ListPageContainer({ pageTitle, itemType }) {
         if (itemType === 'groups') {
             const isGroupInUse = exercises.some(ex => ex.muscleGroupId === id || ex.secondaryMuscleGroupIds?.includes(id));
             if (isGroupInUse) {
-                alert('Este grupo muscular está a ser utilizado por um ou mais exercícios e não pode ser apagado.');
+                showError('Este grupo muscular está em uso por exercícios e não pode ser apagado.');
                 setItemToDelete(null);
                 return;
             }
@@ -157,7 +161,7 @@ export default function ListPageContainer({ pageTitle, itemType }) {
                         <div><label className="block text-xs font-medium text-gray-400 mb-1">Grupo Secundário</label><CustomSelect placeholder="Todos" options={[{id: '', name: 'Todos'}, ...muscleGroups]} value={secondaryFilterGroup} onChange={setSecondaryFilterGroup} /></div>
                     </div>
                 )}
-                 <button onClick={() => navigateTo({ page: itemType, mode: 'create' })} className="w-full btn-primary bg-blue-600/80 hover:bg-blue-600 mb-6 py-3 rounded-lg flex items-center justify-center">
+                 <button onClick={() => navigate('/' + itemType + '/create')} className="w-full btn-primary bg-blue-600/80 hover:bg-blue-600 mb-6 py-3 rounded-lg flex items-center justify-center">
                     <Plus size={20} className="mr-2"/>
                     <span>Adicionar Novo {itemType === 'exercises' ? 'Exercício' : 'Grupo'}</span>
                 </button>
@@ -169,7 +173,7 @@ export default function ListPageContainer({ pageTitle, itemType }) {
                         key={item.id}
                         item={item}
                         itemType={itemType}
-                        onEdit={() => navigateTo({ page: itemType, mode: 'edit', id: item.id })}
+                        onEdit={() => navigate('/' + itemType + '/edit/' + item.id)}
                         onDeleteRequest={() => setItemToDelete(item.id)}
                         onShowVideo={() => item.videoUrl && setVideoModalUrl(item.videoUrl)}
                         onShowImage={() => item.imageUrl && setImageModalUrl(item.imageUrl)}

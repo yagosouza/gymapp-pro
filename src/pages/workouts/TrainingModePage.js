@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { InputField } from '../../components/ui/InputField';
 import { StopCircle, CheckCircle, TrendingUp, Youtube, Repeat, Plus, Minus, X, ChevronDown, Undo2, Activity } from 'lucide-react';
@@ -209,8 +211,17 @@ function TrainingExerciseItem({ workoutExercise, workoutExerciseId, log, isExpan
 }
 
 export default function TrainingModePage() {
-    const { workouts, exercises, activeSession, history, setActiveSession, navigateTo, historyAPI, workoutsAPI } = useAppContext();
-    const workout = workouts.find(w => w.id === activeSession?.workoutId);
+    const navigate = useNavigate();
+    const { workouts, exercises, activeSession, history, setActiveSession, historyAPI, workoutsAPI } = useAppContext();
+    const { showError } = useToast();
+
+    // Guard: se não há sessão ativa, redireciona para lista de treinos
+    if (!activeSession) {
+        navigate('/workouts', { replace: true });
+        return null;
+    }
+
+    const workout = workouts.find(w => w.id === activeSession.workoutId);
     
     const [expandedExercise, setExpandedExercise] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -272,17 +283,17 @@ export default function TrainingModePage() {
             await historyAPI.create(newHistoryEntry);
             await workoutsAPI.update(workout.id, { lastCompleted: completionDate });
             
-            setActiveSession(null); 
-            navigateTo({ page: 'workouts' });
+            setActiveSession(null);
+            navigate('/workouts');
         } catch (error) {
             console.error("Erro ao finalizar o treino:", error);
-            alert("Ocorreu um erro ao salvar o seu progresso. Tente novamente.");
+            showError("Ocorreu um erro ao salvar o seu progresso. Tente novamente.");
         } finally {
             setIsFinishing(false);
         }
     };
 
-    const confirmCancelWorkout = () => { setActiveSession(null); navigateTo({ page: 'workouts' }); };
+    const confirmCancelWorkout = () => { setActiveSession(null); navigate('/workouts'); };
     
     const handleSubstitute = (selectedIds) => {
         if (!selectedIds || selectedIds.length === 0 || !substituteModalInfo) return;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dumbbell, AlertTriangle } from 'lucide-react'; 
+import { Dumbbell, AlertTriangle } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 import { InputField } from '../../components/ui/InputField';
 import { GlobalStyles } from '../../components/ui/GlobalStyles';
 import { APP_VERSION } from '../../constants/initialData'; //
@@ -78,13 +79,14 @@ export function LoginPage() {
     const [password, setPassword] = useState('');
     const [isLoginView, setIsLoginView] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(''); 
+    const [error, setError] = useState('');
+    const { showSuccess } = useToast();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         if (!email || !password) {
-            alert('Por favor, preencha o e-mail e a senha.');
+            setError('Preencha o e-mail e a senha.');
             return;
         }
 
@@ -113,7 +115,7 @@ export function LoginPage() {
         setIsLoading(true);
         try {
             await sendPasswordResetEmail(auth, userEmail);
-            alert('Um e-mail para recuperação de senha foi enviado para o seu endereço.'); // Alert aqui é aceitável pois é uma confirmação positiva
+            showSuccess('E-mail de recuperação enviado. Verifique a sua caixa de entrada.');
         } catch (err) {
             setError(getFriendlyErrorMessage(err));
         } finally {

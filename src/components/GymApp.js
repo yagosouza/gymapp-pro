@@ -1,41 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './layout/Sidebar';
-import MainContent from './MainContent';
-import BottomNavBar from './layout/BottomNavBar'; // Importar
-import InstallPWA from './InstallPWA'; // Importar
-import { useAppContext } from '../context/AppContext';
-import { Menu } from 'lucide-react';
+import BottomNavBar from './layout/BottomNavBar';
+import InstallPWA from './InstallPWA';
 import { GlobalStyles } from './ui/GlobalStyles';
+import { PageErrorBoundary } from './ErrorBoundary';
+import { Menu } from 'lucide-react';
+
+import { HomePage } from '../pages/HomePage';
+import { ProfilePage } from '../pages/profile/ProfilePage';
+import ListPageContainer from '../pages/list/ListPageContainer';
+import { GroupFormPage } from '../pages/groups/GroupFormPage';
+import { ExerciseFormPage } from '../pages/exercises/ExerciseFormPage';
+import WorkoutsListPage from '../pages/workouts/WorkoutsListPage';
+import TrainingModePage from '../pages/workouts/TrainingModePage';
+import WorkoutEditorPage from '../pages/workouts/WorkoutEditorPage';
+import ImportPage from '../pages/import/ImportPage';
+import { FrequencyPage } from '../pages/frequency/FrequencyPage';
 
 export default function GymApp() {
-    const { currentView, goBack } = useAppContext();
+    const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const touchStartRef = useRef(null);
 
-    // Efeito para o botão "voltar" do Android
-    useEffect(() => {
-        const handlePopState = (event) => {
-            event.preventDefault();
-
-            // Se a sidebar estiver aberta, fecha-a. Caso contrário, volta a página.
-            if (isSidebarOpen) {
-                setIsSidebarOpen(false);
-            } else {
-                goBack();
-            }
-        };
-        window.addEventListener('popstate', handlePopState);
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-        };
-    }, [isSidebarOpen, goBack]);
-
-    // Efeito para o gesto de deslizar
+    // Gesto de deslizar para abrir a sidebar no iOS/Android
     useEffect(() => {
         const handleTouchStart = (e) => {
             const startX = e.touches[0].clientX;
-            // Ativa o nosso gesto apenas se começar um pouco afastado da borda (ex: entre 20px e 80px)
-            // para não interferir com o gesto "voltar" do iOS que começa na borda.
             if (startX > 20 && startX < 80) {
                 touchStartRef.current = startX;
             } else {
@@ -46,17 +37,14 @@ export default function GymApp() {
         const handleTouchMove = (e) => {
             if (touchStartRef.current === null) return;
             const touchEnd = e.touches[0].clientX;
-            
-            // Se o dedo se moveu mais de 100 pixels para a direita, abre a sidebar
             if (touchEnd > touchStartRef.current + 100) {
                 setIsSidebarOpen(true);
-                touchStartRef.current = null; // Reseta para não reativar
+                touchStartRef.current = null;
             }
         };
 
         document.addEventListener('touchstart', handleTouchStart);
         document.addEventListener('touchmove', handleTouchMove);
-
         return () => {
             document.removeEventListener('touchstart', handleTouchStart);
             document.removeEventListener('touchmove', handleTouchMove);
@@ -64,38 +52,31 @@ export default function GymApp() {
     }, []);
 
     const getPageTitle = () => {
-        switch (currentView.page) {
-            case 'home': return 'Início';
-            case 'profile': return 'Meu Perfil';
-            case 'groups': {
-                if (currentView.mode === 'edit') return 'Editando Grupo';
-                if (currentView.mode === 'create') return 'Criando Grupo';
-                return 'Grupos Musculares';
-            }
-            case 'exercises': {
-                if (currentView.mode === 'edit') return 'Editando Exercício';
-                if (currentView.mode === 'create') return 'Criando Exercício';
-                return 'Exercícios';
-            }
-            case 'workouts': {
-                if (currentView.mode === 'training') return 'Treino em Andamento';
-                if (currentView.mode === 'edit') return 'Editor de Treino';
-                return 'Meus Treinos';
-            }
-            case 'import': return 'Importar Treino';
-            case 'frequency': return 'Frequência';
-            default: return 'GymApp Pro';
-        }
+        const path = location.pathname;
+        if (path === '/') return 'Início';
+        if (path === '/profile') return 'Meu Perfil';
+        if (path === '/groups/create') return 'Criando Grupo';
+        if (path.startsWith('/groups/edit')) return 'Editando Grupo';
+        if (path === '/groups') return 'Grupos Musculares';
+        if (path === '/exercises/create') return 'Criando Exercício';
+        if (path.startsWith('/exercises/edit')) return 'Editando Exercício';
+        if (path === '/exercises') return 'Exercícios';
+        if (path === '/workouts/training') return 'Treino em Andamento';
+        if (path.startsWith('/workouts/edit')) return 'Editor de Treino';
+        if (path === '/workouts') return 'Meus Treinos';
+        if (path === '/frequency') return 'Frequência';
+        if (path === '/import') return 'Importar Treino';
+        return 'GymApp Pro';
     };
 
     return (
         <div className="flex h-screen bg-gray-900 text-gray-200 font-sans">
             <GlobalStyles />
-            <Sidebar 
+            <Sidebar
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
             />
-            <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300 pb-16 md:pb-0"> {/* Adicionar padding */}
+            <main className="flex-1 flex flex-col overflow-y-auto transition-all duration-300 pb-16 md:pb-0">
                 <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] bg-gray-900/80 backdrop-blur-sm sticky top-0 z-20 flex items-center md:hidden">
                     <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-md hover:bg-gray-700">
                         <Menu size={24} />
@@ -103,11 +84,27 @@ export default function GymApp() {
                     <h1 className="text-xl font-semibold ml-4">{getPageTitle()}</h1>
                 </div>
                 <div className="p-4 sm:p-6 lg:p-8 flex-1">
-                    <MainContent />
+                    <Routes>
+                        <Route path="/" element={<PageErrorBoundary><HomePage /></PageErrorBoundary>} />
+                        <Route path="/profile" element={<PageErrorBoundary><ProfilePage /></PageErrorBoundary>} />
+                        <Route path="/groups" element={<PageErrorBoundary><ListPageContainer pageTitle="Grupos Musculares" itemType="groups" /></PageErrorBoundary>} />
+                        <Route path="/groups/create" element={<PageErrorBoundary><GroupFormPage /></PageErrorBoundary>} />
+                        <Route path="/groups/edit/:id" element={<PageErrorBoundary><GroupFormPage /></PageErrorBoundary>} />
+                        <Route path="/exercises" element={<PageErrorBoundary><ListPageContainer pageTitle="Exercícios" itemType="exercises" /></PageErrorBoundary>} />
+                        <Route path="/exercises/create" element={<PageErrorBoundary><ExerciseFormPage /></PageErrorBoundary>} />
+                        <Route path="/exercises/edit/:id" element={<PageErrorBoundary><ExerciseFormPage /></PageErrorBoundary>} />
+                        <Route path="/workouts" element={<PageErrorBoundary><WorkoutsListPage /></PageErrorBoundary>} />
+                        <Route path="/workouts/edit" element={<PageErrorBoundary><WorkoutEditorPage /></PageErrorBoundary>} />
+                        <Route path="/workouts/edit/:id" element={<PageErrorBoundary><WorkoutEditorPage /></PageErrorBoundary>} />
+                        <Route path="/workouts/training" element={<PageErrorBoundary><TrainingModePage /></PageErrorBoundary>} />
+                        <Route path="/frequency" element={<PageErrorBoundary><FrequencyPage /></PageErrorBoundary>} />
+                        <Route path="/import" element={<PageErrorBoundary><ImportPage /></PageErrorBoundary>} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
                 </div>
             </main>
-            <BottomNavBar setIsSidebarOpen={setIsSidebarOpen} /> {/* Adicionar o componente */}
-            <InstallPWA /> {/* Adicionar o componente de instalação PWA */}
+            <BottomNavBar setIsSidebarOpen={setIsSidebarOpen} />
+            <InstallPWA />
         </div>
     );
 }
