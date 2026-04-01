@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 import { DatabaseZap, FileEdit, Download, Copy, Check, HelpCircle, Upload, ChevronDown, FileJson } from 'lucide-react';
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 import { auth, db } from '../../firebase/config';
@@ -31,7 +33,9 @@ Regras de Execução:
 7.  Saída Final: Sua resposta deve conter APENAS o bloco de código com o JSON finalizado. O JSON deve ser completo e sintaticamente válido, sem comentários, citações ou texto explicativo dentro dele.`;
 
 export default function ImportPage() {
-    const { navigateTo, profile } = useAppContext();
+    const navigate = useNavigate();
+    const { profile } = useAppContext();
+    const { showError, showSuccess } = useToast();
     const [isImporting, setIsImporting] = useState(false);
     const [jsonContent, setJsonContent] = useState('');
     const [isCopied, setIsCopied] = useState(false);
@@ -212,18 +216,18 @@ export default function ImportPage() {
 
     const startImport = async (content) => {
         if (!content.trim()) {
-            alert("Por favor, cole o conteúdo JSON ou selecione um arquivo.");
+            showError("Cole o conteúdo JSON ou selecione um arquivo.");
             return;
         }
         setIsImporting(true);
         try {
             const data = JSON.parse(content);
             await processJsonImport(data, { clearDatabase, conflictStrategy });
-            alert("Importação concluída com sucesso!");
-            navigateTo({ page: 'home' });
+            showSuccess("Importação concluída com sucesso!");
+            navigate('/');
         } catch (error) {
             console.error("Erro ao importar dados:", error);
-            alert(`Falha na importação: ${error.message}. Verifique o formato do JSON.`);
+            showError(`Falha na importação: ${error.message}. Verifique o formato do JSON.`);
         } finally {
             setIsImporting(false);
         }

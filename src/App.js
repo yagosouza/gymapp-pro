@@ -1,39 +1,49 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/auth/LoginPage';
 import GymApp from './components/GymApp';
 import { AppProvider } from './context/AppContext';
-import { auth } from './firebase/config'; // Importe o auth
+import { auth } from './firebase/config';
 import { onAuthStateChanged } from "firebase/auth";
-import { LoadingOverlay } from './components/ui/LoadingOverlay'; // Importar o novo componente
+import { LoadingOverlay } from './components/ui/LoadingOverlay';
+
+function ProtectedRoute({ user, children }) {
+    if (!user) return <Navigate to="/login" replace />;
+    return children;
+}
 
 export default function App() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Ouve as mudanças de estado de autenticação
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
             setLoading(false);
         });
-
-        // Limpa o listener ao desmontar
         return () => unsubscribe();
     }, []);
 
     if (loading) {
-        // Pode adicionar um componente de loading aqui
         return <LoadingOverlay isActive={true} message="A verificar sessão..." />;
     }
 
-    if (!user) {
-        return <LoginPage />;
-    }
-
-    // Passamos o UID do utilizador para o AppProvider
     return (
-        <AppProvider userId={user.uid}>
-            <GymApp />
-        </AppProvider>
+        <Routes>
+            <Route
+                path="/login"
+                element={!user ? <LoginPage /> : <Navigate to="/" replace />}
+            />
+            <Route
+                path="/*"
+                element={
+                    <ProtectedRoute user={user}>
+                        <AppProvider userId={user?.uid}>
+                            <GymApp />
+                        </AppProvider>
+                    </ProtectedRoute>
+                }
+            />
+        </Routes>
     );
 }

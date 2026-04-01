@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'; // Adicionado useMemo
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Clock, PlayCircle, Trash2, Plus, ChevronDown, ListOrdered, Repeat } from 'lucide-react'; // Adicionado ListOrdered
 import { ConfirmationModal } from '../../components/modals/ConfirmationModal';
 import { CustomSelect } from '../../components/ui/CustomSelect';
@@ -91,7 +92,8 @@ function WorkoutListItem({ workout, onEdit, onDeleteRequest, onStart }) {
 }
 
 export default function WorkoutsListPage() {
-    const { workouts, workoutsAPI, navigateTo, startWorkoutSession, activeSession } = useAppContext();
+    const navigate = useNavigate();
+    const { workouts, workoutsAPI, startWorkoutSession, activeSession } = useAppContext();
     const [itemToDelete, setItemToDelete] = useState(null);
     // --- LÓGICA DE ORDENAÇÃO ADICIONADA AQUI ---
     const [sortOrder, setSortOrder] = useStickyState('default', 'workoutSortOrder');
@@ -103,11 +105,9 @@ export default function WorkoutsListPage() {
         { id: 'lastCompleted', name: 'Última Vez Concluído' }
     ];
 
-    const handleCreate = () => 
-        navigateTo({ page: 'workouts', mode: 'edit' });
-    
-    const handleEdit = (workout) =>
-        navigateTo({ page: 'workouts', mode: 'edit', id: workout.id });
+    const handleCreate = () => navigate('/workouts/edit');
+
+    const handleEdit = (workout) => navigate('/workouts/edit/' + workout.id);
     
     const handleDelete = (id) => { 
         workoutsAPI.delete(id); // Corrigido para usar a API do contexto
@@ -115,9 +115,7 @@ export default function WorkoutsListPage() {
     };
 
     const activeWorkout = activeSession ? workouts.find(w => w.id === activeSession.workoutId) : null;
-    const handleReturnToWorkout = () => {
-        navigateTo({ page: 'workouts', mode: 'training' });
-    };
+    const handleReturnToWorkout = () => navigate('/workouts/training');
 
     const sortedWorkouts = useMemo(() => {
         const sorted = [...workouts];
